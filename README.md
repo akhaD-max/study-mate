@@ -31,6 +31,43 @@ Django 5.2 выбран как LTS с поддержкой до апреля 202
 
 Источники: [Django](https://www.djangoproject.com/download/), [совместимость Python](https://docs.djangoproject.com/en/5.2/releases/5.2/), [PostgreSQL backend](https://docs.djangoproject.com/en/5.2/ref/databases/), [Python](https://www.python.org/downloads/), [PostgreSQL](https://www.postgresql.org/support/versioning/), [HTMX](https://htmx.org/docs/), [Psycopg](https://pypi.org/project/psycopg/3.3.6/), [Pillow](https://pypi.org/project/Pillow/13.0.0/), [asgiref](https://pypi.org/project/asgiref/3.12.1/), [sqlparse](https://pypi.org/project/sqlparse/0.6.0/), [tzdata](https://pypi.org/project/tzdata/2026.5/).
 
+## Клонирование
+
+Откройте Powershell / терминал в папке, куда хотите скачать проект, и введите:
+
+```powershell
+git clone https://github.com/akhaD-max/study-mate.git
+cd 'название папки'
+```
+
+## Первый запуск через Docker
+
+Перед запуском откройте Docker Desktop в режиме Linux containers.
+Далее соберите окружение проекта:
+
+```powershell
+docker compose build
+```
+
+Docker автоматически скачает Python 3.13.16, PostgreSQL 17.11
+и установит точные версии библиотек из requirements.txt.
+Создайте локальный файл настроек .env со случайными секретами:
+
+```powershell
+docker compose run --rm --no-deps --user 0 --volume "${PWD}:/workspace" --workdir /workspace web python scripts/setup_env.py
+```
+
+Запустите контейнеры:
+
+```powershell
+docker compose up -d --wait
+```
+
+Откройте http://localhost:8000/.
+Если порт занят, измените WEB_PORT в файле .env, например
+на 8001, и повторите команду запуска. Тогда адрес будет
+http://localhost:8001/.
+
 ## Рекомендации по архитектуре
 
 Начать с Django-монолита: сервер формирует страницы и HTML-фрагменты, HTMX отвечает за поиск, фильтры, модальные формы и обновление статусов. Для проверки Python-кода использовать Ruff, для автоматизированных тестов — pytest. Все тесты и фикстуры хранить в корневой папке `tests/`. Дополнительный API, SPA, Redis и очередь задач из текущих сценариев не следуют.
@@ -89,35 +126,6 @@ UUID можно создавать через `uuid.uuid4` без uuid-ossp; о�
 4. Реализовать путь: регистрация → профиль → публикация → отклик → принятие → уведомление. Затем крайние случаи, управление командой, вопросы и суточная сводка.
 5. Добавить CI с PostgreSQL и командами ниже: Ruff, проверки миграций, pytest и обзор каждого PR. Точные версии инструментов и конфигурацию закрепляет техлид; новые инструменты согласовывать с ним.
 
-## Подготовка окружения сейчас
-
-Все команды выполняются из корня репозитория `study-mate` — папки с README.md и requirements.txt. Откройте терминал в этой папке своей локальной копии. На Windows нужен CPython 3.13.16 x64. Docker Desktop с Linux containers и Compose v2 понадобится для запуска БД. Зависимости устанавливать в виртуальное окружение.
-
-PowerShell:
-
-```powershell
-py -3.13 --version
-py -3.13 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe -c "import django, psycopg, PIL; print(django.get_version(), psycopg.__version__, PIL.__version__)"
-```
-
-Ожидаемые версии: `5.2.17 3.3.6 13.0.0`; pip check должен завершиться без конфликтов. Прямой вызов Python не требует изменения ExecutionPolicy. Если активация разрешена, можно выполнить `.\.venv\Scripts\Activate.ps1`, после чего использовать `python -m pip install -r requirements.txt`.
-
-Linux/macOS (при установленном Python 3.13.16):
-
-```bash
-python3.13 --version
-python3.13 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m pip check
-python -c "import django, psycopg, PIL; print(django.get_version(), psycopg.__version__, PIL.__version__)"
-```
-
-Использовать именно `python -m pip install -r requirements.txt`: ключ `-r` обязателен. Не обновлять зависимости массовым upgrade и не заменять manifest выводом pip freeze из постороннего окружения.
-
 ## Контракт будущего запуска
 
 **Следующие команды заработают только после отдельной реализации каркаса.** Её исполнитель должен создать manage.py в корне, Dockerfile, compose.yaml, `.env.example`, `.gitignore`, `.dockerignore` и настройки Django, реально выполнить инструкцию и передать техлиду необходимые уточнения README. Перед началом реализации техлид также закрепляет версии разрешённых Ruff и pytest в зависимостях разработки и настраивает запуск Django-тестов через pytest. Сейчас эти инструменты в requirements.txt ещё не включены.
@@ -137,55 +145,6 @@ Compose предоставляет сервисы `db` и `web`: PostgreSQL с h
 | POSTGRES_PORT | `5432` снаружи; при конфликте можно `5433` |
 
 Compose должен публиковать БД как `127.0.0.1:${POSTGRES_PORT:-5432}:5432`, передавать POSTGRES-переменные обоим сервисам, а web явно задавать DB_HOST=db и DB_PORT=5432. Каждый разработчик запускает собственное локальное окружение с отдельными данными и секретами. Не задавать глобальный container_name или фиксированное глобальное имя volume.
-
-### Вариант A — всё в Docker
-
-После появления перечисленных файлов, в PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Заполнить `.env` локальными значениями и секретами. Копировать только при первом запуске: не перезаписывать существующий файл. Compose читает `.env` для подстановок, но передача переменных контейнеру должна быть настроена явно через environment/env_file.
-
-```powershell
-docker version
-docker compose version
-docker compose config --quiet
-docker compose build
-docker compose up -d --wait db
-docker compose run --rm web python manage.py migrate --noinput
-docker compose run --rm web python manage.py check
-docker compose run --rm web python manage.py createsuperuser
-docker compose up -d web
-docker compose ps
-docker compose logs --tail=100 web
-```
-
-Открыть [локальный сайт](http://127.0.0.1:8000/). В реализации корневой URL должен отдавать страницу входа/каталог либо корректный редирект. Суперпользователь создаётся один раз; обычные сценарии проверять отдельными аккаунтами.
-
-### Вариант B — Python локально, PostgreSQL в Docker
-
-Подготовить окружение и `.env` как выше. В текущем PowerShell экспортировать **те же** данные подключения. Django сам по себе `.env` не читает; библиотека dotenv не добавлена:
-
-```powershell
-$env:DJANGO_SECRET_KEY = & .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(64))"
-$env:DJANGO_DEBUG = '1'
-$env:DJANGO_ALLOWED_HOSTS = 'localhost,127.0.0.1'
-$env:POSTGRES_DB = 'studymate'
-$env:POSTGRES_USER = 'studymate'
-$env:POSTGRES_PASSWORD = Read-Host 'Локальный пароль PostgreSQL из .env'
-$env:DB_HOST = '127.0.0.1'
-$env:DB_PORT = '5432'
-docker compose config --quiet
-docker compose up -d --wait db
-.\.venv\Scripts\python.exe manage.py migrate --noinput
-.\.venv\Scripts\python.exe manage.py check
-.\.venv\Scripts\python.exe manage.py createsuperuser
-.\.venv\Scripts\python.exe manage.py runserver 127.0.0.1:8000
-```
-
-При другом POSTGRES_PORT установить его в локальный DB_PORT. Linux/macOS используют аналогичные `export NAME=value` и python из активированной .venv. Не запускать локальный сервер и web-контейнер на одном порту. Runserver предназначен для разработки; production-сервер, HTTPS, static/media и резервное копирование выбираются отдельной задачей.
 
 ## Проверка перед интеграцией
 
@@ -234,23 +193,6 @@ git diff --check
 Обязательные интеграционные проверки: два кандидата одновременно принимаются на последнее место; приём одновременно с закрытием набора/изменением вместимости; повтор POST не дублирует данные; чужой пользователь отправляет прямой POST/HTMX; CSRF без токена отклоняется; полная страница и HTMX-фрагмент корректны; ошибка формы не стирает ввод. Тесты блокировок запускать через pytest с отдельными соединениями PostgreSQL и настройкой реальных транзакций. В браузере проверить фокус модального окна, клавиатуру, ошибки и истёкшую сессию.
 
 Отчёт в PR: задача, коммит/ветка, среда, команды, результат Ruff, число pytest-тестов, ручные сценарии и ограничения. Если тесты не добавлены, указать причину. CI и локальная проверка используют одинаковые команды. Один manage.py check или Ruff не подтверждает работоспособность всего проекта.
-
-## Остановка и типовые проблемы
-
-```powershell
-docker compose logs --tail=100 db web
-docker compose stop
-```
-
-Stop сохраняет контейнеры и данные. Down удаляет контейнеры и сеть, но сохраняет обычный именованный volume. Не применять `down -v`, prune или удаление volume без явного решения об уничтожении данных.
-
-- Нет manage.py/compose.yaml: каркас ещё не создан, будущая инструкция пока неприменима.
-- Нет py -3.13: установить согласованный CPython и проверить `py -0p`; не подменять версию молча.
-- Docker daemon недоступен: запустить Docker Desktop и проверить Linux containers.
-- Порт занят: выбрать другой POSTGRES_PORT и соответствующий локальный DB_PORT.
-- БД недоступна: проверить healthy, host (`db` внутри Compose, localhost снаружи), порт и credentials. Изменение пароля в .env не меняет пароль уже инициализированного volume.
-- Тесты не создают БД: проверить локальные права CREATEDB и отсутствие конкурирующего процесса на той же тестовой БД.
-- Пакет не устанавливается: проверить Python, платформу, доступ к PyPI и конкретную ошибку. Не снимать pin и не менять драйвер без обсуждения.
 
 ## Дополнительные инструменты
 

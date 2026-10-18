@@ -1,0 +1,13 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}StudyMate{% endblock %}</title>
+    <script src="{% static 'vendor/htmx-2.0.11.min.js' %}" defer></script>
+</head>
+<body>
+    <main>{% block content %}{% endblock %}</main>
+</body>
+</html>
