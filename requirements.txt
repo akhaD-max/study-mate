@@ -1,0 +1,16 @@
+# StudyMate: CPython 3.13.16, Windows/Linux.
+# Install: python -m pip install -r requirements.txt
+# Direct dependencies; Psycopg and Pillow approved by the project owner.
+Django==5.2.17
+psycopg[binary]==3.3.6
+Pillow==13.0.0
+
+# Runtime dependencies of Django/Psycopg, pinned for CPython 3.13.
+asgiref==3.12.1
+sqlparse==0.6.0
+psycopg-binary==3.3.6
+tzdata==2026.5; sys_platform == "win32"
+
+# HTMX 2.0.11 is browser JavaScript, NOT a Python package.
+# PostgreSQL 17.11 and Python 3.13.16 are installed separately.
+# This manifest pins versions; it is not a hash-verified lock file.
