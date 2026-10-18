@@ -43,7 +43,6 @@ cd 'название папки'
 ## Первый запуск через Docker
 
 Перед запуском откройте Docker Desktop в режиме Linux containers.
-
 Далее соберите окружение проекта:
 
 ```powershell
@@ -52,7 +51,6 @@ docker compose build
 
 Docker автоматически скачает Python 3.13.16, PostgreSQL 17.11
 и установит точные версии библиотек из requirements.txt.
-
 Создайте локальный файл настроек .env со случайными секретами:
 
 ```powershell
@@ -66,7 +64,6 @@ docker compose up -d --wait
 ```
 
 Откройте http://localhost:8000/.
-
 Если порт занят, измените WEB_PORT в файле .env, например
 на 8001, и повторите команду запуска. Тогда адрес будет
 http://localhost:8001/.
