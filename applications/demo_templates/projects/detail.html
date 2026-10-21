@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ project.title }}{% endblock %}
+{% block content %}
+<p>Деморежим: данные хранятся в памяти процесса.</p>
+<h1>{{ project.title }}</h1><p>{{ project.description }}</p>
+<ul>{% for role in roles %}
+<li>{{ role.title }}: {{ role.filled_places }}/{{ role.total_places }}{% if not role.is_available %} — недоступна{% endif %}</li>
+{% endfor %}</ul>
+{% if application_block_reason %}<p>{{ application_block_reason }}</p>{% endif %}
+{% if can_apply or form.is_bound %}
+<form method="post" action="{% url 'applications:submit' project.id %}">
+{% csrf_token %}{{ form.as_p }}
+{% if can_apply %}<button type="submit">Откликнуться</button>{% endif %}
+</form>
+{% endif %}
+<a href="{% url 'applications:mine' %}">Мои заявки</a>
+{% endblock %}

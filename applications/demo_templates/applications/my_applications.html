@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Мои заявки{% endblock %}
+{% block content %}
+<p>Деморежим: данные хранятся в памяти процесса.</p>
+<h1>Мои заявки</h1>
+{% for message in messages %}<p>{{ message }}</p>{% endfor %}
+{% for application in applications %}
+<article>
+<h2><a href="{% url 'projects:detail' application.project.id %}">{{ application.project.title }}</a></h2>
+<p>{{ application.role.title }} — {{ application.get_status_display }}</p>
+<p>{{ application.created_at|date:"d.m.Y" }}</p><p>{{ application.comment }}</p>
+</article>
+{% empty %}<p>Вы ещё не отправили ни одной заявки</p>{% endfor %}
+<a href="{% url 'projects:catalog' %}">Каталог</a>
+{% endblock %}
