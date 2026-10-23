@@ -63,6 +63,7 @@ INSTALLED_APPS = [
 
     'main',
     'accounts',
+    'projects',
 ]
 
 # Своя модель пользователя задана до первых миграций.
