@@ -1,4 +1,6 @@
 from django.contrib.auth import get_user_model, login
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.views import LoginView
 from django.db import IntegrityError, transaction
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
@@ -36,8 +38,12 @@ def register_page(request):
 
     return render(request, "accounts/register.html", {"form":form},)
 
-def login_page(request):
-    return render(request, "accounts/login.html")
+
+class LoginPageView(LoginView):
+    template_name = "accounts/login.html"
+    authentication_form = AuthenticationForm
+    redirect_authenticated_user = True
+    next_page = "main:home"
 
 
 def logout_page(request):
