@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Каталог проектов — StudyMate{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <p class="eyebrow">StudyMate</p>
+        <h1>Каталог проектов</h1>
+        <p class="page-description">Найдите команду, поделитесь навыками и создайте что-то важное вместе.</p>
+    </div>
+    <form class="search-form"
+          method="get"
+          action="{% url 'main:catalog' %}"
+          hx-get="{% url 'main:catalog' %}"
+          hx-trigger="input changed delay:350ms from:input, change, submit"
+          hx-target="#project-results"
+          hx-select="#project-results"
+          hx-swap="outerHTML"
+          hx-push-url="true">
+        <label class="visually-hidden" for="catalog-search">Поиск проектов</label>
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input id="catalog-search" type="search" name="q" value="{{ search_query }}" placeholder="Поиск проектов…">
+        {% if selected_direction %}<input type="hidden" name="direction" value="{{ selected_direction }}">{% endif %}
+    </form>
+</header>
+
+<section class="catalog-toolbar" aria-label="Фильтры проектов">
+    <nav class="filter-list" aria-label="Направление">
+        {% for value, label in directions %}
+            <a class="filter-chip{% if selected_direction == value %} is-selected{% endif %}"
+               href="{% url 'main:catalog' %}{% if value %}?direction={{ value }}{% endif %}"
+               {% if selected_direction == value %}aria-current="page"{% endif %}
+               hx-get="{% url 'main:catalog' %}{% if value %}?direction={{ value }}{% endif %}"
+               hx-target="#project-results"
+               hx-select="#project-results"
+               hx-swap="outerHTML"
+               hx-push-url="true">{{ label }}</a>
+        {% endfor %}
+    </nav>
+    <form class="sort-form"
+          method="get"
+          action="{% url 'main:catalog' %}"
+          hx-get="{% url 'main:catalog' %}"
+          hx-trigger="submit"
+          hx-target="#project-results"
+          hx-select="#project-results"
+          hx-swap="outerHTML"
+          hx-push-url="true">
+        {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+        {% if selected_direction %}<input type="hidden" name="direction" value="{{ selected_direction }}">{% endif %}
+        <label class="visually-hidden" for="catalog-sort">Сортировка проектов</label>
+        <select id="catalog-sort" name="sort" onchange="this.form.requestSubmit()">
+            <option value="newest"{% if sort == "newest" %} selected{% endif %}>Сначала новые</option>
+            <option value="oldest"{% if sort == "oldest" %} selected{% endif %}>Сначала старые</option>
+        </select>
+    </form>
+</section>
+
+<section id="project-results" class="project-results" aria-live="polite">
+    {% if projects %}
+        <div class="project-grid">
+            {% for project in projects %}
+                <article class="project-card">
+                    <div class="project-card-topline">
+                        <span class="direction-label">{{ project.direction_label|default:project.direction }}</span>
+                        <time class="project-date" datetime="{{ project.created_at|date:'c' }}">{{ project.created_at|timesince }} назад</time>
+                    </div>
+                    <h2 class="project-title"><a href="{{ project.get_absolute_url }}">{{ project.title }}</a></h2>
+                    <p class="project-description">{{ project.description|truncatewords:25 }}</p>
+
+                    {% if project.roles %}
+                        <div class="role-list" aria-label="Открытые роли">
+                            {% for role in project.roles %}
+                                <span class="role-chip">{{ role.title }}{% if role.openings %} · {{ role.openings }}{% endif %}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    {% if project.skills %}
+                        <div class="skill-list" aria-label="Навыки проекта">
+                            {% for skill in project.skills %}<span class="skill-chip">{{ skill }}</span>{% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <footer class="project-card-footer">
+                        <div class="member-stack" aria-label="Участников: {{ project.member_count|default:0 }}">
+                            {% for member in project.members|slice:":3" %}
+                                <span class="member-avatar" title="{{ member }}">{{ member|slice:":1"|upper }}</span>
+                            {% empty %}
+                                <span class="member-avatar member-avatar-placeholder" aria-hidden="true">＋</span>
+                            {% endfor %}
+                            {% if project.member_count > 3 %}<span class="member-overflow">+{{ project.member_count|add:"-3" }}</span>{% endif %}
+                        </div>
+                        <span class="roles-needed">{{ project.roles_needed|default:"Ищет участников" }}</span>
+                    </footer>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <span class="empty-state-icon" aria-hidden="true">⌕</span>
+            <p class="eyebrow">Пока тихо</p>
+            {% if search_query or selected_direction %}
+                <h2>Проекты не найдены</h2>
+                <p>Попробуйте изменить запрос или выбрать другое направление. Новые проекты появятся здесь.</p>
+            {% else %}
+                <h2>Пока нет проектов</h2>
+                <p>Загляните позже — здесь появятся проекты, в которых можно присоединиться к команде.</p>
+            {% endif %}
+            {% if search_query or selected_direction %}
+                <a class="button button-outline" href="{% url 'main:catalog' %}">Сбросить фильтры</a>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

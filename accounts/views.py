@@ -1,9 +1,6 @@
-from django.contrib.auth import get_user_model, login, logout
-from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth.views import LoginView
-from django.db import IntegrityError, transaction
+from django.contrib.auth import logout
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_POST
 
 from .forms import RegistrationForm
 
@@ -46,7 +43,7 @@ class LoginPageView(LoginView):
     next_page = "main:home"
 
 
-@require_http_methods(["GET", "POST"])
+@require_POST
 def logout_page(request):
     logout(request)
-    return redirect("main:home")
+    return redirect("main:catalog")
