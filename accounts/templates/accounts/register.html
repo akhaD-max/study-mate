@@ -1,15 +1,7 @@
-{% extends "base.html" %}
-
+{% extends "accounts/base_auth.html" %}
 {% block title %}Регистрация — StudyMate{% endblock %}
-
-{% block content %}
-<h1>Регистрация</h1>
-
-<form method="post" action="{% url 'accounts:register' %}">
-    {% csrf_token %}
-
-    {{ form.as_p }}
-
-    <button type="submit">Зарегистрироваться</button>
-</form>
-{% endblock %}
+{% block hero_label %}СТУДЕНЧЕСКОЕ СООБЩЕСТВО{% endblock %}
+{% block hero_title %}НАЙДИ КОМАНДУ.<br>СОЗДАЙ ПРОЕКТ.<br>ПОЛУЧИ ОПЫТ.{% endblock %}
+{% block sticker %}БЕСПЛАТНО ДЛЯ СТУДЕНТОВ{% endblock %}
+{% block manifesto %}Объединяйся с единомышленниками из вузов страны, участвуй в хакатонах и собирай реальное портфолио.{% endblock %}
+{% block auth_form %}{% include "accounts/partials/register_form.html" %}{% endblock %}
