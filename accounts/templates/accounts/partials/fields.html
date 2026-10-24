@@ -1,0 +1,13 @@
+{% if form.non_field_errors %}<div class="auth-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+{% for field in form %}
+    <div class="auth-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        <div class="auth-input-wrap">
+            {{ field }}
+            {% if field.name == 'password' %}
+                <button class="auth-password-toggle" type="button" data-password-toggle="{{ field.id_for_label }}" aria-label="Показать пароль" aria-pressed="false">Показать</button>
+            {% endif %}
+        </div>
+        {% if field.errors %}<div class="auth-errors" id="{{ field.auto_id }}_error" role="alert">{{ field.errors }}</div>{% endif %}
+    </div>
+{% endfor %}

@@ -1,0 +1,11 @@
+<div id="auth-form">
+    <h2 id="auth-title" tabindex="-1">Создать аккаунт</h2>
+    <p class="auth-subtitle">Присоединяйся к тысячам студентов и менторов.</p>
+    <form method="post" action="{% url 'accounts:register' %}" hx-post="{% url 'accounts:register' %}" hx-target="#auth-form" hx-swap="outerHTML" hx-disabled-elt="find button[type='submit']">
+        {% csrf_token %}
+        {% include "accounts/partials/fields.html" %}
+        <button class="auth-submit" type="submit">Зарегистрироваться <span aria-hidden="true">→</span></button>
+        <p class="auth-network-error" role="alert" hidden>Не удалось отправить форму. Проверь соединение и попробуй ещё раз.</p>
+    </form>
+    <p class="auth-switch">Уже есть аккаунт? <a href="{% url 'accounts:login' %}">Войти</a></p>
+</div>

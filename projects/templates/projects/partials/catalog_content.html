@@ -1,0 +1,73 @@
+<section id="catalog-content" class="catalog-content" aria-label="Каталог проектов">
+    <form class="catalog-filters" method="get" action="{% url 'main:catalog' %}"
+          hx-get="{% url 'main:catalog' %}" hx-target="#catalog-content" hx-swap="outerHTML" hx-push-url="true"
+          hx-trigger="submit, change from:select, change from:input[type=radio]" hx-indicator="#catalog-loading">
+        <fieldset class="catalog-categories">
+            <legend class="visually-hidden">Направление проекта</legend>
+            <label class="catalog-chip"><input type="radio" name="direction" value=""{% if not selected_direction %} checked{% endif %}><span>Все проекты</span></label>
+            {% for category in categories %}
+                <label class="catalog-chip"><input type="radio" name="direction" value="{{ category.slug }}"{% if selected_direction == category.slug %} checked{% endif %}><span>{{ category.name }}</span></label>
+            {% endfor %}
+        </fieldset>
+        <div class="catalog-filter-bottom">
+            <div class="catalog-search">
+                <label class="visually-hidden" for="catalog-search">Поиск проектов</label>
+                <input type="search" id="catalog-search" name="q" value="{{ search_query }}" maxlength="200" placeholder="Поиск проектов…">
+                <button type="submit">Найти</button>
+            </div>
+            <label class="catalog-sort" for="catalog-sort">Сортировка:
+                <select id="catalog-sort" name="sort">
+                    <option value="newest"{% if sort == 'newest' %} selected{% endif %}>Сначала новые</option>
+                    <option value="oldest"{% if sort == 'oldest' %} selected{% endif %}>Сначала старые</option>
+                    <option value="members"{% if sort == 'members' %} selected{% endif %}>Больше участников</option>
+                    <option value="fewer_members"{% if sort == 'fewer_members' %} selected{% endif %}>Меньше участников</option>
+                </select>
+            </label>
+        </div>
+        <span id="catalog-loading" class="htmx-indicator" role="status">Обновляем каталог…</span>
+    </form>
+    <div class="catalog-section-heading" aria-live="polite">
+        <h2>Открыты к новым людям</h2>
+        <p>Проектов: {{ project_count }} · каждый начинается с первого шага</p>
+    </div>
+    {% if projects %}
+        <div class="catalog-grid">
+            {% for project in projects %}
+                <article class="catalog-card{% if forloop.counter|divisibleby:2 %} catalog-card-lime{% endif %}">
+                    <div class="catalog-card-top"><span>/ {{ forloop.counter0|add:page_obj.start_index|stringformat:'02d' }}</span>
+                        <svg aria-hidden="true" viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="25" cy="25" r="3" fill="currentColor" stroke="none"/><ellipse cx="25" cy="25" rx="20" ry="8" transform="rotate(35 25 25)"/><ellipse cx="25" cy="25" rx="20" ry="8" transform="rotate(-35 25 25)"/></svg>
+                    </div>
+                    <h3>{{ project.title }}</h3>
+                    <p class="catalog-card-meta">{{ project.author.get_full_name }} · {{ project.category.name }}</p>
+                    <div class="catalog-card-bottom">
+                        <p class="catalog-role-pill">{% for role in project.catalog_roles %}{{ role.name }}{% if not forloop.last %} · {% endif %}{% empty %}Роли пока не добавлены{% endfor %}</p>
+                        <details class="catalog-details">
+                            <summary>Подробнее о проекте <span aria-hidden="true">↗</span></summary>
+                            <div class="catalog-description">
+                                {{ project.description|default:'Описание пока не добавлено.'|linebreaks }}
+                                <p>Участников: {{ project.member_count }}</p>
+                                {% if project.catalog_roles %}<ul>{% for role in project.catalog_roles %}<li>{{ role.name }} — свободных мест: {{ role.free_places }}</li>{% endfor %}</ul>{% endif %}
+                            </div>
+                        </details>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+        {% if page_obj.has_other_pages %}
+            <nav class="catalog-pagination" aria-label="Страницы каталога" hx-target="#catalog-content" hx-swap="outerHTML" hx-push-url="true">
+                {% if page_obj.has_previous %}<a href="{% querystring page=page_obj.previous_page_number %}" hx-get="{% url 'main:catalog' %}{% querystring page=page_obj.previous_page_number %}">← Назад</a>{% endif %}
+                <span>Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span>
+                {% if page_obj.has_next %}<a href="{% querystring page=page_obj.next_page_number %}" hx-get="{% url 'main:catalog' %}{% querystring page=page_obj.next_page_number %}">Далее →</a>{% endif %}
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="catalog-empty" role="status">
+            {% if search_query or selected_direction %}
+                <h3>Проекты не найдены</h3><p>Попробуйте другой запрос или выберите другое направление.</p>
+                <a href="{% url 'main:catalog' %}" hx-get="{% url 'main:catalog' %}" hx-target="#catalog-content" hx-swap="outerHTML" hx-push-url="true">Сбросить фильтры</a>
+            {% else %}
+                <h3>Пока нет проектов</h3><p>Когда откроется набор в проекты, они появятся здесь.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>
