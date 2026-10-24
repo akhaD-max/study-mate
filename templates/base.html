@@ -10,9 +10,14 @@
 <body>
     <nav>
         <a href="{% url 'main:home' %}">Главная</a>
-        <a href="{% url 'accounts:register' %}">Регистрация</a>
-        <a href="{% url 'accounts:login' %}">Вход</a>
-        <a href="{% url 'accounts:logout' %}">Выход</a>
+
+        {% if user.is_authenticated %}
+            <span class="user-info">Вы вошли как {{ user.email }}</span>
+            <a href="{% url 'accounts:logout' %}">Выход</a>
+        {% else %}
+            <a href="{% url 'accounts:register' %}">Регистрация</a>
+            <a href="{% url 'accounts:login' %}">Вход</a>
+        {% endif %}
     </nav>
     <main>{% block content %}{% endblock %}</main>
 </body>
