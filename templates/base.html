@@ -8,8 +8,10 @@
     <title>{% block title %}StudyMate{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script src="{% static 'vendor/htmx-2.0.11.min.js' %}" defer></script>
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
+    {% block layout %}
     <div class="app-shell">
         <aside class="sidebar" aria-label="Основная навигация">
             <a class="brand" href="{% url 'main:catalog' %}" aria-label="StudyMate — каталог проектов">
@@ -60,5 +62,6 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+    {% endblock %}
 </body>
 </html>
