@@ -1,117 +1,38 @@
 {% extends "base.html" %}
-
-{% block title %}Каталог проектов — StudyMate{% endblock %}
-
-{% block content %}
-<header class="page-header">
-    <div>
-        <p class="eyebrow">StudyMate</p>
-        <h1>Каталог проектов</h1>
-        <p class="page-description">Найдите команду, поделитесь навыками и создайте что-то важное вместе.</p>
-    </div>
-    <form class="search-form"
-          method="get"
-          action="{% url 'main:catalog' %}"
-          hx-get="{% url 'main:catalog' %}"
-          hx-trigger="input changed delay:350ms from:input, change, submit"
-          hx-target="#project-results"
-          hx-select="#project-results"
-          hx-swap="outerHTML"
-          hx-push-url="true">
-        <label class="visually-hidden" for="catalog-search">Поиск проектов</label>
-        <span class="search-icon" aria-hidden="true">⌕</span>
-        <input id="catalog-search" type="search" name="q" value="{{ search_query }}" placeholder="Поиск проектов…">
-        {% if selected_direction %}<input type="hidden" name="direction" value="{{ selected_direction }}">{% endif %}
-    </form>
-</header>
-
-<section class="catalog-toolbar" aria-label="Фильтры проектов">
-    <nav class="filter-list" aria-label="Направление">
-        {% for value, label in directions %}
-            <a class="filter-chip{% if selected_direction == value %} is-selected{% endif %}"
-               href="{% url 'main:catalog' %}{% if value %}?direction={{ value }}{% endif %}"
-               {% if selected_direction == value %}aria-current="page"{% endif %}
-               hx-get="{% url 'main:catalog' %}{% if value %}?direction={{ value }}{% endif %}"
-               hx-target="#project-results"
-               hx-select="#project-results"
-               hx-swap="outerHTML"
-               hx-push-url="true">{{ label }}</a>
-        {% endfor %}
-    </nav>
-    <form class="sort-form"
-          method="get"
-          action="{% url 'main:catalog' %}"
-          hx-get="{% url 'main:catalog' %}"
-          hx-trigger="submit"
-          hx-target="#project-results"
-          hx-select="#project-results"
-          hx-swap="outerHTML"
-          hx-push-url="true">
-        {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
-        {% if selected_direction %}<input type="hidden" name="direction" value="{{ selected_direction }}">{% endif %}
-        <label class="visually-hidden" for="catalog-sort">Сортировка проектов</label>
-        <select id="catalog-sort" name="sort" onchange="this.form.requestSubmit()">
-            <option value="newest"{% if sort == "newest" %} selected{% endif %}>Сначала новые</option>
-            <option value="oldest"{% if sort == "oldest" %} selected{% endif %}>Сначала старые</option>
-        </select>
-    </form>
-</section>
-
-<section id="project-results" class="project-results" aria-live="polite">
-    {% if projects %}
-        <div class="project-grid">
-            {% for project in projects %}
-                <article class="project-card">
-                    <div class="project-card-topline">
-                        <span class="direction-label">{{ project.direction_label|default:project.direction }}</span>
-                        <time class="project-date" datetime="{{ project.created_at|date:'c' }}">{{ project.created_at|timesince }} назад</time>
-                    </div>
-                    <h2 class="project-title"><a href="{{ project.get_absolute_url }}">{{ project.title }}</a></h2>
-                    <p class="project-description">{{ project.description|truncatewords:25 }}</p>
-
-                    {% if project.roles %}
-                        <div class="role-list" aria-label="Открытые роли">
-                            {% for role in project.roles %}
-                                <span class="role-chip">{{ role.title }}{% if role.openings %} · {{ role.openings }}{% endif %}</span>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-
-                    {% if project.skills %}
-                        <div class="skill-list" aria-label="Навыки проекта">
-                            {% for skill in project.skills %}<span class="skill-chip">{{ skill }}</span>{% endfor %}
-                        </div>
-                    {% endif %}
-
-                    <footer class="project-card-footer">
-                        <div class="member-stack" aria-label="Участников: {{ project.member_count|default:0 }}">
-                            {% for member in project.members|slice:":3" %}
-                                <span class="member-avatar" title="{{ member }}">{{ member|slice:":1"|upper }}</span>
-                            {% empty %}
-                                <span class="member-avatar member-avatar-placeholder" aria-hidden="true">＋</span>
-                            {% endfor %}
-                            {% if project.member_count > 3 %}<span class="member-overflow">+{{ project.member_count|add:"-3" }}</span>{% endif %}
-                        </div>
-                        <span class="roles-needed">{{ project.roles_needed|default:"Ищет участников" }}</span>
-                    </footer>
-                </article>
-            {% endfor %}
+{% load static %}
+{% block title %}StudyMate — Каталог проектов{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/catalog.css' %}">{% endblock %}
+{% block layout %}
+<div class="catalog-shell">
+    <header class="catalog-header">
+        <div class="catalog-header-inner">
+            <a class="catalog-brand" href="{% url 'main:catalog' %}">studymate<span aria-hidden="true"></span></a>
+            <nav aria-label="Основная навигация">
+                <a class="catalog-nav-active" href="{% url 'main:catalog' %}" aria-current="page">Каталог</a>
+                {% if user.is_authenticated %}
+                    <span class="catalog-user" title="{{ user.get_full_name }}" aria-label="Пользователь: {{ user.get_full_name }}">{{ user.get_short_name|slice:':2'|upper }}</span>
+                    <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="catalog-logout" type="submit">Выйти</button></form>
+                {% else %}
+                    <a class="catalog-login" href="{% url 'accounts:login' %}">Войти</a>
+                {% endif %}
+            </nav>
         </div>
-    {% else %}
-        <div class="empty-state">
-            <span class="empty-state-icon" aria-hidden="true">⌕</span>
-            <p class="eyebrow">Пока тихо</p>
-            {% if search_query or selected_direction %}
-                <h2>Проекты не найдены</h2>
-                <p>Попробуйте изменить запрос или выбрать другое направление. Новые проекты появятся здесь.</p>
-            {% else %}
-                <h2>Пока нет проектов</h2>
-                <p>Загляните позже — здесь появятся проекты, в которых можно присоединиться к команде.</p>
-            {% endif %}
-            {% if search_query or selected_direction %}
-                <a class="button button-outline" href="{% url 'main:catalog' %}">Сбросить фильтры</a>
-            {% endif %}
-        </div>
-    {% endif %}
-</section>
+    </header>
+    <main class="catalog-main">
+        <section class="catalog-hero" aria-labelledby="catalog-title">
+            <div class="catalog-hero-copy">
+                <p class="catalog-eyebrow">ПРОЕКТЫ <span>/</span> НАЙДИ СВОИХ</p>
+                <h1 id="catalog-title">Идеи ждут<br>твоей энергии.</h1>
+                <p class="catalog-intro">Выбирай проект, находи команду и пробуй то, чего ещё не делал.</p>
+            </div>
+            <div class="catalog-art" aria-hidden="true">
+                <svg class="catalog-hero-arrow" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="7" viewBox="0 0 100 120"><path d="M85 15C40-5 10 25 25 90"/><path d="M10 65L25 92L50 75"/></svg>
+                <svg class="catalog-hero-atom" fill="none" stroke="currentColor" stroke-width="7" viewBox="0 0 200 200"><circle cx="100" cy="100" r="9" fill="currentColor" stroke="none"/><ellipse cx="100" cy="100" rx="76" ry="32" transform="rotate(35 100 100)"/><ellipse cx="100" cy="100" rx="76" ry="32" transform="rotate(-35 100 100)"/></svg>
+                <span>Твой следующий шаг</span>
+            </div>
+        </section>
+        {% include "projects/partials/catalog_content.html" %}
+    </main>
+    <footer class="catalog-footer"><div><strong>studymate</strong> / сделаем вместе</div><span>Учебный проект · Ростелеком</span></footer>
+</div>
 {% endblock %}
