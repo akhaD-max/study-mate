@@ -1,8 +1,10 @@
 from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError
-from django.db import close_old_connections
+from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import close_old_connections, connection
 from django.test import TransactionTestCase
 
 from applications.models import Application
@@ -76,9 +78,13 @@ class ApplicationServiceTests(TransactionTestCase):
             self.send()
 
     def test_concurrent_duplicate_uses_separate_connections(self):
+        self.assertEqual(connection.vendor, "postgresql")
+        barrier = Barrier(2)
+
         def attempt(_):
             close_old_connections()
             try:
+                barrier.wait(timeout=10)
                 self.send()
                 return "saved"
             except ValidationError:
@@ -90,3 +96,49 @@ class ApplicationServiceTests(TransactionTestCase):
             results = list(pool.map(attempt, range(2)))
         self.assertEqual(sorted(results), ["duplicate", "saved"])
         self.assertEqual(Application.objects.count(), 1)
+
+    def test_anonymous_cannot_submit(self):
+        with self.assertRaises(PermissionDenied):
+            self.send(user=AnonymousUser())
+        self.assertFalse(Application.objects.exists())
+
+    def test_pending_does_not_reserve_last_place_for_other_student(self):
+        self.send(comment="x" * 300)
+        self.send(user=self.other)
+        self.assertEqual(Application.objects.count(), 2)
+        self.role.refresh_from_db()
+        self.assertEqual(self.role.free_places, 1)
+
+    def test_concurrent_students_can_apply_for_same_last_place(self):
+        barrier = Barrier(2)
+
+        def attempt(user):
+            close_old_connections()
+            try:
+                barrier.wait(timeout=10)
+                return self.send(user=user).pk
+            finally:
+                close_old_connections()
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            saved = list(pool.map(attempt, [self.student, self.other]))
+        self.assertEqual(len(set(saved)), 2)
+        self.assertEqual(Application.objects.filter(status=Application.Status.PENDING).count(), 2)
+        self.role.refresh_from_db()
+        self.assertEqual(self.role.free_places, 1)
+
+    def test_pending_on_another_role_blocks_second_application(self):
+        self.send()
+        role = ProjectRole.objects.create(project=self.project, name="Design", capacity=1)
+        with self.assertRaises(ValidationError):
+            self.send(role_id=role.pk)
+        self.assertEqual(Application.objects.count(), 1)
+
+    def test_all_non_open_statuses_block_submission(self):
+        for status in (Project.Status.IN_PROGRESS, Project.Status.COMPLETED,
+                       Project.Status.CANCELLED):
+            self.project.status = status
+            self.project.save()
+            with self.subTest(status=status), self.assertRaises(ValidationError):
+                self.send()
+        self.assertFalse(Application.objects.exists())
