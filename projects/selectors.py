@@ -1,6 +1,10 @@
 from django.shortcuts import get_object_or_404
 
-from .models import Project, ProjectRole
+from .models import Category, Project, ProjectRole
+
+
+def list_categories():
+    return Category.objects.order_by("name", "pk")
 
 
 def list_projects():
