@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Каталог проектов{% endblock %}
+{% block content %}
+<h1>Каталог проектов</h1>
+{% for project in projects %}
+<p><a href="{% url 'projects:detail' project.id %}">{{ project.title }}</a></p>
+{% empty %}<p>Открытых проектов пока нет.</p>{% endfor %}
+<a href="{% url 'applications:mine' %}">Мои заявки</a>
+{% endblock %}
