@@ -14,9 +14,9 @@ class CatalogRenderingTests(SimpleTestCase):
             getattr(self.queryset, method).return_value = self.queryset
         self.queryset.order_by.return_value = []
         project_patch = patch(
-            "main.views.Project.objects.filter", return_value=self.queryset
+            "projects.views.Project.objects.filter", return_value=self.queryset
         )
-        category_patch = patch("main.views.Category.objects.all", return_value=[])
+        category_patch = patch("projects.views.Category.objects.all", return_value=[])
         project_patch.start()
         category_patch.start()
         self.addCleanup(project_patch.stop)

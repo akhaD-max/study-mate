@@ -1,0 +1,16 @@
+<header class="catalog-header">
+    <div class="catalog-header-inner">
+        <a class="catalog-brand" href="{% url 'projects:catalog' %}">studymate<span aria-hidden="true"></span></a>
+        <nav aria-label="Основная навигация">
+            <a href="{% url 'projects:catalog' %}">Каталог</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'projects:mine' %}">Мои проекты</a>
+                <a href="{% url 'applications:mine' %}">Мои заявки</a>
+                <a class="catalog-login" href="{% url 'projects:create' %}">Создать проект</a>
+                <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="catalog-logout" type="submit">Выйти</button></form>
+            {% else %}
+                <a class="catalog-login" href="{% url 'accounts:login' %}">Войти</a>
+            {% endif %}
+        </nav>
+    </div>
+</header>

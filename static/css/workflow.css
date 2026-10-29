@@ -1,0 +1,35 @@
+.workflow-main { width: min(1180px, 100%); margin: 0 auto; padding: 40px 32px 72px; flex: 1; }
+.workflow-heading { margin: 24px 0 32px; }
+.workflow-heading .catalog-eyebrow { color: #1648ff; }
+.workflow-heading h1 { margin: 0 0 16px; font-size: clamp(32px, 4vw, 52px); line-height: 1.1; letter-spacing: -.04em; overflow-wrap: anywhere; }
+.workflow-heading > p:last-child, .muted { color: #647084; line-height: 1.6; }
+.panel { padding: 28px; border: 1px solid #e0e4eb; border-radius: 24px; background: white; min-width: 0; overflow-wrap: anywhere; }
+.panel h2 { margin-top: 0; font-size: 23px; letter-spacing: -.025em; }
+.panel h2 a:hover, .back-link:hover { color: #1648ff; }
+.panel .catalog-eyebrow { color: #1648ff; }
+.stack { display: grid; gap: 20px; }
+.detail-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+.prose { white-space: pre-wrap; line-height: 1.75; overflow-wrap: anywhere; }
+.prose p { white-space: normal; }
+.role-row { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid #e5e7eb; align-items: center; }
+.role-row p { margin-bottom: 0; }
+.status { display: inline-block; background: #edf1ff; color: #1648ff; border-radius: 100px; padding: 7px 12px; font-size: 12px; font-weight: 700; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 20px; }
+.action { display: inline-flex; justify-content: center; align-items: center; min-height: 46px; padding: 12px 22px; border: 1px solid #1648ff; border-radius: 100px; background: #1648ff; color: white; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.action:hover { background: #123cd5; }
+.action.secondary { background: white; color: #1648ff; }
+.action.secondary:hover { background: #edf1ff; }
+.project-form { max-width: 780px; }
+.panel form > p, .project-form > p, .role-fields > p { display: grid; gap: 8px; }
+.panel label { font-size: 14px; font-weight: 600; }
+.panel input, .panel textarea, .panel select { width: 100%; max-width: 100%; border: 1px solid #cbd3df; background: #fafbfc; padding: 12px 14px; border-radius: 12px; font: inherit; }
+.panel textarea { resize: vertical; min-height: 120px; }
+.panel input[aria-invalid=true], .panel textarea[aria-invalid=true], .panel select[aria-invalid=true] { border-color: #bd2236; }
+.errorlist { color: #ad1931; padding-left: 20px; font-size: 14px; }
+.notice { padding: 16px 20px; border-radius: 16px; background: #edf1ff; color: #1648ff; }
+.notice.error { color: #ad1931; background: #fff0f2; }
+.role-fields { border: 1px solid #e0e4eb; border-radius: 16px; margin: 20px 0; padding: 16px; }
+.role-fields legend { padding: 0 8px; font-weight: 700; }
+.apply-page { max-width: 650px; }
+@media (max-width: 900px) { .catalog-header-inner { flex-wrap: wrap; } .catalog-header nav { flex-wrap: wrap; gap: 12px 18px; } .detail-grid { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .workflow-main { padding: 24px 16px 48px; } .panel { padding: 22px; } .role-row { align-items: start; flex-direction: column; } }

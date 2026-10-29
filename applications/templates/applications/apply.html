@@ -1,0 +1,7 @@
+{% extends "workflow.html" %}
+{% block title %}Отклик на проект — StudyMate{% endblock %}
+{% block workflow_content %}
+<a class="back-link" href="{% url 'projects:detail' project.id %}">← {{ project.title }}</a>
+<div class="workflow-heading"><h1>Твой шаг в команду.</h1><p>{{ project.title }}</p></div>
+<div class="panel apply-page">{% include "applications/partials/form.html" %}</div>
+{% endblock %}

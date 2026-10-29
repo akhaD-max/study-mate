@@ -63,10 +63,12 @@ INSTALLED_APPS = [
     'main',
     'accounts',
     'projects',
+    'applications',
 ]
 
 # Своя модель пользователя задана до первых миграций.
 AUTH_USER_MODEL = 'accounts.User'
+LOGIN_URL = 'accounts:login'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

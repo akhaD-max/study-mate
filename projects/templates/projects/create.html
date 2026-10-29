@@ -1,0 +1,20 @@
+{% extends "workflow.html" %}
+{% block title %}Создать проект — StudyMate{% endblock %}
+{% block workflow_content %}
+<div class="workflow-heading"><p class="catalog-eyebrow">ИДЕЯ → КОМАНДА</p><h1>Начни свой проект.</h1><p>Расскажи о задумке и выбери, кого ждёшь в команду.</p></div>
+<form class="panel project-form" method="post" action="{% url 'projects:create' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <h2>Роли в команде</h2>
+    <p class="muted">Добавь хотя бы одну роль. На каждую можно пригласить от 1 до 20 участников.</p>
+    {{ role_formset.management_form }}
+    {{ role_formset.non_form_errors }}
+    {% for role_form in role_formset %}
+        <fieldset class="role-fields"><legend>Роль {{ forloop.counter }}</legend>{{ role_form.as_p }}</fieldset>
+    {% endfor %}
+    <div class="actions">
+        <button class="action secondary" type="submit" name="action" value="add_role" formnovalidate>+ Добавить роль</button>
+        <button class="action" type="submit">Опубликовать проект</button>
+    </div>
+</form>
+{% endblock %}

@@ -68,7 +68,7 @@ class AuthSubmissionTests(TestCase):
                     },
                     **({"HTTP_HX_REQUEST": "true"} if htmx else {}),
                 )
-                user = get_user_model().objects.get(email=f"student{htmx}@example.com")
+                user = get_user_model().objects.get(email=f"student{htmx}@example.com".lower())
                 self.assertTrue(user.check_password("StudyMate-safe-password!"))
                 self.assertEqual(self.client.session[SESSION_KEY], str(user.pk))
                 if htmx:
@@ -76,4 +76,6 @@ class AuthSubmissionTests(TestCase):
                         response.headers["HX-Redirect"], reverse("main:home")
                     )
                 else:
-                    self.assertRedirects(response, reverse("main:home"))
+                    self.assertRedirects(
+                        response, reverse("main:home"), fetch_redirect_response=False,
+                    )

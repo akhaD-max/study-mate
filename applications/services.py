@@ -57,3 +57,74 @@ def list_my_applications(user):
     return Application.objects.filter(user=user).select_related(
         "project", "role",
     ).order_by("-created_at", "-pk")
+
+
+def list_project_applications(*, user, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    if not user.is_authenticated or project.author_id != user.pk:
+        raise PermissionDenied("Управлять заявками может только руководитель проекта.")
+    return project, project.applications.select_related("user", "role").order_by(
+        "-created_at", "-pk",
+    )
+
+
+def review_application(*, user, application_id, accept):
+    """Проект → роль → заявка: общий порядок блокировок с подачей и выходом."""
+    candidate = get_object_or_404(Application, pk=application_id)
+    with transaction.atomic():
+        project = get_object_or_404(Project.objects.select_for_update(), pk=candidate.project_id)
+        if not user.is_authenticated or project.author_id != user.pk:
+            raise PermissionDenied("Рассматривать заявки может только руководитель проекта.")
+        role = get_object_or_404(
+            ProjectRole.objects.select_for_update(), pk=candidate.role_id, project=project,
+        )
+        application = get_object_or_404(
+            Application.objects.select_for_update(), pk=application_id,
+        )
+        target = Application.Status.ACCEPTED if accept else Application.Status.REJECTED
+        if application.status == target:
+            return application
+        if application.status != Application.Status.PENDING:
+            raise ValidationError("Заявка уже рассмотрена. Обновите страницу.")
+        if accept:
+            role.project = project
+            if not role.is_available:
+                raise ValidationError("Роль закрыта или свободных мест больше нет.")
+            if application.user_id == project.author_id:
+                raise ValidationError("Руководитель уже состоит в проекте.")
+            if ProjectMember.objects.filter(project=project, user_id=application.user_id).exists():
+                raise ValidationError("Студент уже в команде проекта.")
+            ProjectMember.objects.create(
+                project=project, role=role, user_id=application.user_id,
+            )
+        application.status = target
+        application.save(update_fields=["status", "updated_at"])
+        return application
+
+
+def withdraw_application(*, user, application_id):
+    candidate = get_object_or_404(Application, pk=application_id)
+    with transaction.atomic():
+        get_object_or_404(Project.objects.select_for_update(), pk=candidate.project_id)
+        application = get_object_or_404(
+            Application.objects.select_for_update(), pk=application_id,
+        )
+        if not user.is_authenticated or application.user_id != user.pk:
+            raise PermissionDenied("Можно отозвать только собственную заявку.")
+        if application.status != Application.Status.PENDING:
+            raise ValidationError("Можно отозвать только заявку на рассмотрении.")
+        application.delete()
+
+
+def leave_project(*, user, project_id):
+    with transaction.atomic():
+        project = get_object_or_404(Project.objects.select_for_update(), pk=project_id)
+        if not user.is_authenticated or user.pk is None:
+            raise PermissionDenied("Необходимо войти в аккаунт.")
+        if project.author_id == user.pk:
+            raise ValidationError("Руководитель не может покинуть свой проект.")
+        membership = ProjectMember.objects.filter(project=project, user=user).first()
+        if membership is None:
+            return
+        get_object_or_404(ProjectRole.objects.select_for_update(), pk=membership.role_id)
+        membership.delete()

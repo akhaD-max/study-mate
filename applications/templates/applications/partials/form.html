@@ -1,0 +1,13 @@
+<section id="application-form" aria-live="polite">
+    <p class="catalog-eyebrow">СЛЕДУЮЩИЙ ШАГ</p><h2>Стань частью команды.</h2>
+    {% if application_block_reason %}<p class="notice">{{ application_block_reason }}</p>{% endif %}
+    {% if can_apply or form.is_bound %}
+    <form method="post" action="{% url 'applications:submit' project.id %}"
+          hx-post="{% url 'applications:submit' project.id %}" hx-target="#application-form" hx-swap="outerHTML">
+        {% csrf_token %}
+        {{ form.as_p }}
+        {% if can_apply %}<button class="action" type="submit">Отправить заявку</button>{% endif %}
+    </form>
+    {% endif %}
+    <p><a href="{% url 'applications:mine' %}">Мои заявки →</a></p>
+</section>

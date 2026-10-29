@@ -1,0 +1,22 @@
+{% extends "workflow.html" %}
+{% block title %}{{ project.title }} — StudyMate{% endblock %}
+{% block workflow_content %}
+<a class="back-link" href="{% url 'projects:catalog' %}">← Каталог проектов</a>
+<div class="workflow-heading"><p class="catalog-eyebrow">{{ project.category.name }} / {{ project.get_status_display }}</p><h1>{{ project.title }}</h1><p>Руководитель: {{ project.author.get_full_name }}</p></div>
+<div class="detail-grid">
+    <div class="stack">
+        <section class="panel"><h2>О проекте</h2><div class="prose">{{ project.description|linebreaks }}</div></section>
+        <section class="panel"><h2>Кого ждём в команду</h2>
+            {% for role in roles %}<div class="role-row"><div><strong>{{ role.name }}</strong><p class="muted">Занято {{ role.occupied_places }}/{{ role.capacity }} · Свободно: {{ role.free_places }}</p></div><span class="status">{% if role.is_available %}Набор открыт{% else %}Набор закрыт{% endif %}</span></div>{% empty %}<p class="muted">Роли пока не добавлены.</p>{% endfor %}
+        </section>
+        <section class="panel"><h2>Команда</h2><p>{{ project.author.get_full_name }} · Руководитель</p>
+            {% for member in members %}<p>{{ member.user.get_full_name }} · {{ member.role.name }}</p>{% empty %}<p class="muted">Первый участник может быть совсем рядом.</p>{% endfor %}
+            {% if is_member %}<form method="post" action="{% url 'applications:leave' project.id %}">{% csrf_token %}<button class="action secondary" type="submit">Покинуть проект</button></form>{% endif %}
+        </section>
+    </div>
+    <aside class="panel apply-panel">
+        {% if is_owner %}<p class="catalog-eyebrow">ТВОЙ ПРОЕКТ</p><h2>Собирай команду.</h2><p class="muted">Здесь можно посмотреть кандидатов и принять решение по каждой заявке.</p><a class="action" href="{% url 'applications:incoming' project.id %}">Входящие заявки</a>
+        {% else %}{% include "applications/partials/form.html" %}{% endif %}
+    </aside>
+</div>
+{% endblock %}

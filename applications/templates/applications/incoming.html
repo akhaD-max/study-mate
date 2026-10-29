@@ -1,0 +1,13 @@
+{% extends "workflow.html" %}
+{% block title %}Входящие заявки — StudyMate{% endblock %}
+{% block workflow_content %}
+<a class="back-link" href="{% url 'projects:detail' project.id %}">← {{ project.title }}</a>
+<div class="workflow-heading"><p class="catalog-eyebrow">СОБИРАЕМ КОМАНДУ</p><h1>Входящие заявки.</h1><p>{{ project.title }}</p></div>
+<div class="stack">
+{% for application in applications %}
+<article class="panel"><span class="status">{{ application.get_status_display }}</span><h2>{{ application.user.get_full_name }}</h2><p class="muted">{{ application.role.name }} · {{ application.created_at|date:"d.m.Y" }}</p><p class="prose">{{ application.comment }}</p>
+{% if application.status == 'pending' %}<div class="actions"><form method="post" action="{% url 'applications:accept' application.id %}">{% csrf_token %}<button class="action" type="submit">Принять</button></form><form method="post" action="{% url 'applications:reject' application.id %}">{% csrf_token %}<button class="action secondary" type="submit">Отклонить</button></form></div>{% endif %}
+</article>
+{% empty %}<div class="panel"><h2>Пока нет заявок.</h2><p class="muted">Когда кто-то откликнется, заявка появится здесь.</p></div>{% endfor %}
+</div>
+{% endblock %}

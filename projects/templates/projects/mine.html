@@ -1,0 +1,9 @@
+{% extends "workflow.html" %}
+{% block title %}Мои проекты — StudyMate{% endblock %}
+{% block workflow_content %}
+<div class="workflow-heading"><p class="catalog-eyebrow">ТВОИ КОМАНДЫ</p><h1>Мои проекты.</h1><p>Проекты, которыми ты руководишь или в которых участвуешь.</p></div>
+<div class="stack">
+{% for project in projects %}<article class="panel"><h2><a href="{% url 'projects:detail' project.id %}">{{ project.title }}</a></h2><p class="muted">{{ project.category.name }} · {{ project.get_status_display }}</p><div class="actions"><a class="action secondary" href="{% url 'projects:detail' project.id %}">Открыть проект</a>{% if project.author_id == user.pk %}<a class="action" href="{% url 'applications:incoming' project.id %}">Входящие заявки</a>{% else %}<span class="status">Участник команды</span>{% endif %}</div></article>
+{% empty %}<div class="panel"><h2>Здесь будут твои проекты.</h2><p class="muted">Создай свой или найди команду в каталоге.</p><a class="action" href="{% url 'projects:create' %}">Создать проект</a></div>{% endfor %}
+</div>
+{% endblock %}

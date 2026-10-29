@@ -1,0 +1,7 @@
+<section id="application-form" aria-live="polite" class="sent-state">
+    <p class="catalog-eyebrow">ПЕРВЫЙ ШАГ СДЕЛАН</p><h2>Заявка отправлена</h2>
+    <p>{{ application.project.title }} · {{ application.role.name }}</p>
+    <p class="status">{{ application.get_status_display }}</p>
+    <p class="muted">Руководитель рассмотрит заявку. Её статус доступен в твоём списке.</p>
+    <a class="action" href="{% url 'applications:mine' %}">Мои заявки</a>
+</section>

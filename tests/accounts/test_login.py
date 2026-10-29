@@ -33,7 +33,7 @@ class LoginTests(TestCase):
             self.url, {"username": "STUDENT@EXAMPLE.COM", "password": PASSWORD}
         )
 
-        self.assertRedirects(response, self.home)
+        self.assertRedirects(response, self.home, fetch_redirect_response=False)
         self.assertEqual(self.client.session[SESSION_KEY], str(self.user.pk))
         home = self.client.get(self.home)
         self.assertEqual(home.wsgi_request.user.pk, self.user.pk)
@@ -78,7 +78,7 @@ class LoginTests(TestCase):
 
         response = self.client.get(self.url)
 
-        self.assertRedirects(response, self.home)
+        self.assertRedirects(response, self.home, fetch_redirect_response=False)
 
     def test_internal_next_survives_form_submission(self):
         target = reverse("accounts:register")
@@ -101,7 +101,7 @@ class LoginTests(TestCase):
                     {"username": self.user.email, "password": PASSWORD, "next": target},
                 )
 
-                self.assertRedirects(response, self.home)
+                self.assertRedirects(response, self.home, fetch_redirect_response=False)
 
     def test_csrf_is_required_and_token_from_page_allows_login(self):
         client = Client(enforce_csrf_checks=True)
@@ -116,5 +116,5 @@ class LoginTests(TestCase):
             self.url,
             {**credentials, "csrfmiddlewaretoken": client.cookies["csrftoken"].value},
         )
-        self.assertRedirects(response, self.home)
+        self.assertRedirects(response, self.home, fetch_redirect_response=False)
         self.assertEqual(client.session[SESSION_KEY], str(self.user.pk))

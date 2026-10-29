@@ -14,13 +14,13 @@ class ValidateUserSessionMiddleware(MiddlewareMixin):
 
     def process_request(self, request):
         if not hasattr(request, "user") or not request.user.is_authenticated:
-            return None
+            return
 
         # request.user уже загружен AuthenticationMiddleware
         # Проверяем, существует ли пользователь в БД
         user_pk = request.user.pk
         if user_pk is None:
-            return None
+            return
 
         # Используем exists() для эффективной проверки без загрузки объекта
         if not User.objects.filter(pk=user_pk).exists():
@@ -30,5 +30,3 @@ class ValidateUserSessionMiddleware(MiddlewareMixin):
             # Но можно принудительно сбросить сейчас:
             from django.contrib.auth.models import AnonymousUser
             request.user = AnonymousUser()
-
-        return None

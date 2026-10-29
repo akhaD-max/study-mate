@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/catalog.css' %}">
+<link rel="stylesheet" href="{% static 'css/workflow.css' %}">
+{% endblock %}
+{% block layout %}
+<div class="catalog-shell">
+    {% include "projects/partials/header.html" %}
+    <main class="workflow-main">
+        {% for message in messages %}<p class="notice" role="status">{{ message }}</p>{% endfor %}
+        {% for error in errors %}<p class="notice error" role="alert">{{ error }}</p>{% endfor %}
+        {% block workflow_content %}{% endblock %}
+    </main>
+    <footer class="catalog-footer"><div><strong>studymate</strong> / сделаем вместе</div><span>Найди свою команду</span></footer>
+</div>
+{% endblock %}

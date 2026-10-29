@@ -1,0 +1,12 @@
+{% extends "workflow.html" %}
+{% block title %}Мои заявки — StudyMate{% endblock %}
+{% block workflow_content %}
+<div class="workflow-heading"><p class="catalog-eyebrow">ТВОИ ВОЗМОЖНОСТИ</p><h1>Мои заявки.</h1><p>Следи за ответами команд и выбирай следующий шаг.</p></div>
+<div class="stack">
+{% for application in applications %}
+<article class="panel"><span class="status">{{ application.get_status_display }}</span><h2><a href="{% url 'projects:detail' application.project.id %}">{{ application.project.title }}</a></h2><p class="muted">{{ application.role.name }} · {{ application.created_at|date:"d.m.Y" }}</p><p class="prose">{{ application.comment }}</p>
+{% if application.status == 'pending' %}<form method="post" action="{% url 'applications:withdraw' application.id %}">{% csrf_token %}<button class="action secondary" type="submit">Отозвать заявку</button></form>{% endif %}
+</article>
+{% empty %}<div class="panel"><h2>Вы ещё не отправили ни одной заявки</h2><p class="muted">Найди идею, в которую хочется вложиться.</p><a class="action" href="{% url 'projects:catalog' %}">Найти проект</a></div>{% endfor %}
+</div>
+{% endblock %}

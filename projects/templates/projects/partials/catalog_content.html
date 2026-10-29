@@ -37,7 +37,7 @@
                     <div class="catalog-card-top"><span>/ {{ forloop.counter0|add:page_obj.start_index|stringformat:'02d' }}</span>
                         <svg aria-hidden="true" viewBox="0 0 50 50" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="25" cy="25" r="3" fill="currentColor" stroke="none"/><ellipse cx="25" cy="25" rx="20" ry="8" transform="rotate(35 25 25)"/><ellipse cx="25" cy="25" rx="20" ry="8" transform="rotate(-35 25 25)"/></svg>
                     </div>
-                    <h3>{{ project.title }}</h3>
+                    <h3><a href="{% url 'projects:detail' project.id %}">{{ project.title }}</a></h3>
                     <p class="catalog-card-meta">{{ project.author.get_full_name }} · {{ project.category.name }}</p>
                     <div class="catalog-card-bottom">
                         <p class="catalog-role-pill">{% for role in project.catalog_roles %}{{ role.name }}{% if not forloop.last %} · {% endif %}{% empty %}Роли пока не добавлены{% endfor %}</p>
@@ -49,6 +49,7 @@
                                 {% if project.catalog_roles %}<ul>{% for role in project.catalog_roles %}<li>{{ role.name }} — свободных мест: {{ role.free_places }}</li>{% endfor %}</ul>{% endif %}
                             </div>
                         </details>
+                        <p><a href="{% url 'projects:detail' project.id %}">Открыть проект →</a></p>
                     </div>
                 </article>
             {% endfor %}

@@ -3,7 +3,7 @@ import os
 import django
 import pytest
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "applications.demo_settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
 
 

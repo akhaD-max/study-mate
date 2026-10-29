@@ -1,11 +1,10 @@
-from django.test import Client, override_settings
+from django.test import Client
 from django.urls import reverse
 
 from applications.models import Application
 from tests.applications import test_services
 
 
-@override_settings(ROOT_URLCONF="applications.demo_urls")
 class ApplicationViewTests(test_services.ApplicationServiceTests):
     def test_http_submission_csrf_privacy_and_stale_form(self):
         client = Client(enforce_csrf_checks=True)
@@ -23,7 +22,7 @@ class ApplicationViewTests(test_services.ApplicationServiceTests):
         self.assertEqual(Application.objects.count(), 1)
         client.force_login(self.other)
         self.assertNotContains(client.get(response.url), "Letter")
-        self.assertEqual(client.get(submit).status_code, 405)
+        self.assertEqual(client.get(submit).status_code, 200)
         client.logout()
         self.assertEqual(client.get(detail).status_code, 302)
 
