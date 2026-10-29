@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<script src="{% static 'js/auth.js' %}" defer></script>
+{% endblock %}
+{% block layout %}
+<div class="auth-shell">
+    <header class="auth-header">
+        <a class="auth-brand" href="{% url 'main:catalog' %}" aria-label="StudyMate — каталог">studymate<span aria-hidden="true">●</span></a>
+        <nav aria-label="Основная навигация"><a href="{% url 'main:catalog' %}">Каталог</a></nav>
+    </header>
+    <main class="auth-main">
+        <section class="auth-hero" aria-labelledby="hero-title">
+            <div>
+                <p class="auth-eyebrow">{% block hero_label %}МЕСТО, ГДЕ НАЧИНАЮТ{% endblock %}</p>
+                <h1 id="hero-title">{% block hero_title %}ТВОИ ИДЕИ.<br>ТВОИ ЛЮДИ.<br>ТВОЙ СТАРТ.{% endblock %}</h1>
+            </div>
+            <div class="auth-art" aria-hidden="true">
+                <span class="auth-sticker">{% block sticker %}ОПЫТ ВМЕСТО СТРАХА{% endblock %}</span>
+            </div>
+            <p class="auth-manifesto">{% block manifesto %}Находи команду, пробуй новое и создавай проекты, которыми хочется делиться.{% endblock %}</p>
+        </section>
+        <section class="auth-panel" aria-labelledby="auth-title">
+            {% block auth_form %}{% endblock %}
+        </section>
+    </main>
+    <footer class="auth-footer"><div><strong>studymate</strong><span class="auth-footer-slash">/</span><span class="auth-footer-tagline">сделаем вместе</span></div><span>Учебный проект · Ростелеком</span></footer>
+</div>
+{% endblock %}

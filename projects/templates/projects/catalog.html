@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}StudyMate — Каталог проектов{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/catalog.css' %}">{% endblock %}
+{% block layout %}
+<div class="catalog-shell">
+    <header class="catalog-header">
+        <div class="catalog-header-inner">
+            <a class="catalog-brand" href="{% url 'main:catalog' %}">studymate<span aria-hidden="true"></span></a>
+            <nav aria-label="Основная навигация">
+                <a class="catalog-nav-active" href="{% url 'main:catalog' %}" aria-current="page">Каталог</a>
+                {% if user.is_authenticated %}
+                    <span class="catalog-user" title="{{ user.get_full_name }}" aria-label="Пользователь: {{ user.get_full_name }}">{{ user.get_short_name|slice:':2'|upper }}</span>
+                    <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="catalog-logout" type="submit">Выйти</button></form>
+                {% else %}
+                    <a class="catalog-login" href="{% url 'accounts:login' %}">Войти</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+    <main class="catalog-main">
+        <section class="catalog-hero" aria-labelledby="catalog-title">
+            <div class="catalog-hero-copy">
+                <p class="catalog-eyebrow">ПРОЕКТЫ <span>/</span> НАЙДИ СВОИХ</p>
+                <h1 id="catalog-title">Идеи ждут<br>твоей энергии.</h1>
+                <p class="catalog-intro">Выбирай проект, находи команду и пробуй то, чего ещё не делал.</p>
+            </div>
+            <div class="catalog-art" aria-hidden="true">
+                <span>Твой следующий шаг</span>
+            </div>
+        </section>
+        {% include "projects/partials/catalog_content.html" %}
+    </main>
+    <footer class="catalog-footer"><div><strong>studymate</strong> / сделаем вместе</div><span>Учебный проект · Ростелеком</span></footer>
+</div>
+{% endblock %}

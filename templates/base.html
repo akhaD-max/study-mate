@@ -4,16 +4,64 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="htmx-config" content='{"allowScriptTags":false}'>
     <title>{% block title %}StudyMate{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script src="{% static 'vendor/htmx-2.0.11.min.js' %}" defer></script>
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <nav>
-        <a href="{% url 'main:home' %}">Главная</a>
-        <a href="{% url 'accounts:register' %}">Регистрация</a>
-        <a href="{% url 'accounts:login' %}">Вход</a>
-        <a href="{% url 'accounts:logout' %}">Выход</a>
-    </nav>
-    <main>{% block content %}{% endblock %}</main>
+    {% block layout %}
+    <div class="app-shell">
+        <aside class="sidebar" aria-label="Основная навигация">
+            <a class="brand" href="{% url 'main:catalog' %}" aria-label="StudyMate — каталог проектов">
+                <span class="brand-mark" aria-hidden="true">S</span>
+                <span class="brand-name">StudyMate</span>
+            </a>
+
+            <nav class="sidebar-nav">
+                <a class="nav-link{% if request.path == '/projects/' or request.path == '/' %} is-active{% endif %}"
+                   href="{% url 'main:catalog' %}">
+                    <span class="nav-icon" aria-hidden="true">▤</span>
+                    <span>Каталог проектов</span>
+                </a>
+                {% if user.is_authenticated %}
+                    <a class="nav-link{% if '/applications/' in request.path %} is-active{% endif %}" href="/applications/">
+                        <span class="nav-icon" aria-hidden="true">▣</span>
+                        <span>Мои заявки</span>
+                    </a>
+                    <a class="nav-link{% if '/accounts/profile/' in request.path %} is-active{% endif %}" href="/accounts/profile/">
+                        <span class="nav-icon" aria-hidden="true">●</span>
+                        <span>Профиль</span>
+                    </a>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-account">
+                {% if user.is_authenticated %}
+                    <div class="account-summary">
+                        <span class="account-avatar" aria-hidden="true">{{ user.get_short_name|default:user.get_username|slice:":1"|upper }}</span>
+                        <span class="account-copy">
+                            <strong>{{ user.get_full_name|default:user.get_username }}</strong>
+                            <span>Студент</span>
+                        </span>
+                    </div>
+                    <form class="logout-form" method="post" action="{% url 'accounts:logout' %}">
+                        {% csrf_token %}
+                        <button class="logout-button" type="submit">Выйти</button>
+                    </form>
+                {% else %}
+                    <p class="account-prompt">Присоединяйтесь к проектам и находите команду.</p>
+                    <a class="button button-dark button-full" href="{% url 'accounts:login' %}">Войти</a>
+                    <a class="register-link" href="{% url 'accounts:register' %}">Создать аккаунт</a>
+                {% endif %}
+            </div>
+        </aside>
+
+        <main class="main-area">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% endblock %}
 </body>
 </html>

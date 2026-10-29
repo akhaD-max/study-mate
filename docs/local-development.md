@@ -1,9 +1,8 @@
-# Запуск подготовленного каркаса
+# Запуск подготовленного окружения и демо-данных
 
-Это подробная инструкция для ветки `feature/django-docker-bootstrap`.
-Краткий запуск приведён в README.
-Созданы `manage.py`, `config`, шаблоны и инфраструктура. Пользовательских
-приложений и миграций нет. Корневая страница возвращает страницу готовности.
+Инструкция по локальному запуску `StudyMate` через Docker Compose или локальную
+`.venv`, применению миграций и загрузке повторяемых демонстрационных данных.
+Краткий порядок приведён также в `README.md`.
 
 ## Всё в Docker
 
@@ -13,8 +12,6 @@
 ```powershell
 git clone https://github.com/akhaD-max/study-mate.git
 cd study-mate
-# До интеграции изменений в main:
-git switch feature/django-docker-bootstrap
 docker compose build
 ```
 
@@ -29,21 +26,16 @@ PostgreSQL также имеет Dockerfile: поэтому его образ с
 ```powershell
 docker compose run --rm --no-deps --user 0 --volume "${PWD}:/workspace" --workdir /workspace web python scripts/setup_env.py
 docker compose config --quiet
-docker compose up -d --wait
-docker compose ps
 ```
 
 В Linux/macOS вместо `${PWD}` можно использовать `$(pwd)`. Временный контейнер
 с `--user 0` нужен только для создания файла на смонтированном каталоге.
 Обычный `web` работает от пользователя `django` без прав root.
 
-Открыть http://127.0.0.1:8000/. HTMX уже находится в `static/vendor`, CDN и npm
-не нужны. Код копируется в образ; после изменения исходников повторить
-`docker compose build` и `docker compose up -d --wait`.
-
 В `.env` при необходимости изменить `WEB_PORT` или `POSTGRES_PORT`.
 Оба порта публикуются только на `127.0.0.1`. Данные PostgreSQL сохраняются
-в именованном volume конкретного Compose-проекта.
+в именованном volume конкретного Compose-проекта. Файл `.env` и реальные пароли
+пользователей никогда не коммитятся в репозиторий.
 
 ```powershell
 docker compose logs --tail=100 web db
@@ -54,10 +46,9 @@ docker compose stop
 
 ## Локальный Python, PostgreSQL в Docker
 
-В этой рабочей копии переносимый официальный CPython находится в
-`.python/tools/python.exe`; `.venv` создана на его основе. Системный Python
-3.11.9 не используется. `.python`, `.venv`, `.local` и `.env` игнорируются Git
-и исключены из контекста Docker. Их не нужно переносить коллегам.
+В подготовленной рабочей копии переносимый официальный CPython находится в
+`.python/tools/python.exe`; `.venv` создана на его основе. `.python`, `.venv`,
+`.local` и `.env` игнорируются Git и исключены из контекста Docker.
 
 При уже установленном CPython 3.13.16 на другом Windows-компьютере:
 
@@ -80,27 +71,69 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local.ps1 runserver 
 `setup_env.py` создаёт случайные ключ и пароль, существующий `.env` сохраняет.
 `local.ps1` загружает `.env` в окружение процесса и устанавливает `DB_HOST`
 в `127.0.0.1`, `DB_PORT` в значение `POSTGRES_PORT`. Django сам `.env` не читает.
-Формат файла: `KEY=value` без кавычек и подстановок. ExecutionPolicy меняется
-только для запуска указанного процесса, системная политика не меняется.
-Не запускать локальный сервер и контейнер `web` на одном порту.
+Формат файла: `KEY=value` без кавычек и подстановок. Не запускать локальный
+сервер и контейнер `web` на одном порту.
 
-## Миграции и следующий шаг
+## Миграции и демонстрационные данные (`seed_demo`)
 
-Стандартные приложения `django.contrib` присутствуют в каркасе. Доменных
-приложений пока нет. До создания первой рабочей схемы команда должна утвердить
-кастомного пользователя, как указано в AGENTS.md. Автоматического `migrate`
-при старте контейнера нет. Страница готовности работает без таблиц, admin
-потребует согласованной схемы и применения миграций.
+Автоматического `migrate` и автозагрузки фикстур при старте контейнера или внутри
+миграций нет: и миграции, и демо-данные запускаются явно.
 
-После согласования модели пользователя и добавления соответствующего приложения:
+### Запуск в Docker Compose
 
 ```powershell
+docker compose up -d --wait db
 docker compose run --rm web python manage.py migrate --noinput
-docker compose run --rm web python manage.py createsuperuser
+docker compose run --rm web python manage.py seed_demo --password <ваш_демо_пароль>
+docker compose up -d --wait web
 ```
 
-Для локального Python аналогично использовать `scripts/local.ps1 migrate`
-и `scripts/local.ps1 createsuperuser`.
+Вместо аргумента `--password` можно передать переменную окружения
+`SEED_DEMO_PASSWORD` (поддерживается и алиас `DEMO_PASSWORD`):
+
+```powershell
+docker compose run --rm -e SEED_DEMO_PASSWORD=<ваш_демо_пароль> web python manage.py seed_demo
+```
+
+### Запуск через локальную `.venv`
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local.ps1 migrate --noinput
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local.ps1 seed_demo --password <ваш_демо_пароль>
+```
+
+Либо с переменной окружения в текущей PowerShell-сессии:
+
+```powershell
+$env:SEED_DEMO_PASSWORD = '<ваш_демо_пароль>'
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local.ps1 seed_demo
+```
+
+### Правила пароля и идемпотентности
+
+- Пароль должен содержать **минимум 6 символов** (единое правило со сценарием
+  регистрации и входа в `accounts`). Пароль хешируется стандартным механизмом
+  Django (`set_password` / PBKDF2) и в открытом виде нигде не хранится.
+- Учётные записи реальных пользователей (например, созданные через регистрацию
+  или `createsuperuser`) командой не затрагиваются.
+- Повторный вызов `seed_demo` безопасен: дубли пользователей, направлений,
+  проектов, ролей, членства и заявок не создаются, а заявки и статусы, уже
+  отправленные или изменённые при ручной проверке, не удаляются и не сбрасываются.
+
+### Что создаёт `seed_demo` для проверки 4-го спринта
+
+| Учётная запись | Назначение |
+| --- | --- |
+| `author@studymate.local` | Автор демо-проектов (проверка запрета отклика на собственный проект) |
+| `student1@studymate.local` | Основной студент для проверки подачи заявки, негативных сценариев и раздела «Мои заявки» |
+| `student2@studymate.local` | Второй студент (занимает место в команде и имеет собственную заявку для проверки изоляции чужих откликов) |
+
+| Проект | Статус | Подготовленные роли и сценарии проверки |
+| --- | --- | --- |
+| Платформа учебных команд StudyMate | `open` | `Backend-разработчик` (свободная роль, `0/2`) — успешная подача; `Frontend-разработчик` (занятая роль, `1/1`, участник `student2`) — отказ из-за отсутствия мест; `UI/UX дизайнер` (`is_open=False`) — отказ из-за закрытого набора роли |
+| Телеграм-бот расписания и дедлайнов | `open` | У `student1` уже создана заявка `pending` («На рассмотрении») на `Python-разработчик` — проверка блокировки повторного активного отклика на проект |
+| Аналитика вовлечённости онлайн-курсов | `in_progress` | Набор проекта закрыт, `student1` состоит в команде (`Data Analyst`) и имеет образец заявки `accepted` («Принята») |
+| Дизайн-система студенческих сервисов | `open` | Образец заявки `rejected` («Отклонена») у `student1` и активная заявка `pending` у `student2` (проверка всех статусов и невидимости чужих заявок) |
 
 ## Проверки
 
@@ -108,20 +141,13 @@ docker compose run --rm web python manage.py createsuperuser
 .\.venv\Scripts\python.exe -m pip check
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local.ps1 check
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local.ps1 makemigrations --check --dry-run
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/local.ps1 migrate --check
 docker compose run --rm web python -m pip check
 docker compose run --rm web python manage.py check
 git diff --check
 ```
 
-Ruff 0.17.1 установлен только в служебной `.local/lint` для проверки этой задачи:
-
-```powershell
-.\.local\lint\Scripts\python.exe -m ruff check .
-```
-
-Версии Ruff/pytest в командных зависимостях и их включение в dev-образ остаются
-за техлидом согласно AGENTS.md. Исходный requirements.txt не изменён. Pytest
-не запускался: тестов и бизнес-приложений ещё нет; фиктивные тесты не добавлены.
-
-Этот Compose запускает сервер разработки Django. Подготовка production-сервера
-и HTTPS в задачу создания каркаса не входит.
+Ruff 0.17.1+ используется для статической проверки `python -m ruff check .`, а
+автотесты запускаются командами `python manage.py test tests` / `python -m pytest tests`
+на отдельной тестовой БД PostgreSQL. Этот Compose запускает сервер разработки
+Django; подготовка production-сервера и HTTPS в текущую задачу не входит.
