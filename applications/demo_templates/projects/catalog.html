@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Каталог проектов{% endblock %}
 {% block content %}
-<p>Деморежим: данные хранятся в памяти процесса.</p>
 <h1>Каталог проектов</h1>
 {% for project in projects %}
 <p><a href="{% url 'projects:detail' project.id %}">{{ project.title }}</a></p>

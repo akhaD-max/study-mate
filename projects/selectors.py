@@ -1,24 +1,15 @@
-from django.http import Http404
+from django.shortcuts import get_object_or_404
 
-from applications.storage import get_store
+from .models import Project, ProjectRole
 
 
 def list_projects():
-    store = get_store()
-    with store.lock:
-        return [p for p in store.projects.values() if p.status == "open"]
+    return Project.objects.filter(status=Project.Status.OPEN).select_related("author", "category")
 
 
 def get_project(project_id):
-    store = get_store()
-    with store.lock:
-        try:
-            return store.projects[project_id]
-        except KeyError:
-            raise Http404("Проект не найден.") from None
+    return get_object_or_404(Project.objects.select_related("author", "category"), pk=project_id)
 
 
 def list_roles(project_id):
-    store = get_store()
-    with store.lock:
-        return [r for r in store.roles.values() if r.project_id == project_id]
+    return ProjectRole.objects.filter(project_id=project_id).select_related("project").with_occupancy()

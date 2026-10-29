@@ -1,24 +1,22 @@
-from uuid import UUID
-
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import IntegrityError, transaction
+from django.shortcuts import get_object_or_404
 
-from projects.selectors import get_project
+from projects.models import Project, ProjectMember, ProjectRole
 
-from .storage import Application, get_store
+from .models import Application
 
 
-def application_block_reason(store, project, student_id):
-    if str(project.author_id) == student_id:
+def application_block_reason(project, user_id):
+    if project.author_id == user_id:
         return "Нельзя подать заявку на собственный проект."
-    if (project.id, student_id) in store.memberships:
+    if ProjectMember.objects.filter(project=project, user_id=user_id).exists():
         return "Вы уже в команде проекта."
-    if any(
-        a.project.id == project.id and a.student_id == student_id
-        and a.status in {"pending", "accepted"}
-        for a in store.applications
-    ):
+    if Application.objects.filter(
+        project=project, user_id=user_id, status=Application.Status.PENDING,
+    ).exists():
         return "Заявка на этот проект уже отправлена."
-    if project.status != "open":
+    if project.status != Project.Status.OPEN:
         return "Набор в проект закрыт."
     return ""
 
@@ -28,30 +26,34 @@ def submit_application(*, user, project_id, role_id, comment=""):
         raise PermissionDenied("Необходимо войти в аккаунт.")
     if len(comment) > 300:
         raise ValidationError("Письмо должно содержать не более 300 символов.")
-    store = get_store()
-    # The complete check-and-create operation is atomic within this demo process.
-    with store.lock:
-        project = get_project(project_id)
-        reason = application_block_reason(store, project, str(user.pk))
+    with transaction.atomic():
+        # Все операции изменения набора/состава должны блокировать проект,
+        # затем роль в этом же порядке.
+        project = get_object_or_404(Project.objects.select_for_update(), pk=project_id)
+        reason = application_block_reason(project, user.pk)
         if reason:
             raise ValidationError(reason)
         try:
-            role = store.roles.get(UUID(str(role_id)))
-        except (ValueError, TypeError, AttributeError):
-            role = None
-        if role is None or role.project_id != project.id:
-            raise ValidationError("Роль не принадлежит этому проекту.")
+            role = ProjectRole.objects.select_for_update().get(pk=role_id, project=project)
+        except (ProjectRole.DoesNotExist, ValidationError, ValueError, TypeError):
+            raise ValidationError("Роль не принадлежит этому проекту.") from None
+        role.project = project
         if not role.is_available:
             raise ValidationError("Роль закрыта или свободных мест больше нет.")
-        application = Application(str(user.pk), project, role, comment)
-        store.applications.append(application)
-        return application
+        try:
+            with transaction.atomic():
+                return Application.objects.create(
+                    user=user, project=project, role=role, comment=comment,
+                )
+        except IntegrityError as error:
+            if getattr(error.__cause__, "diag", None) and (
+                error.__cause__.diag.constraint_name == "applications_active_per_project_uniq"
+            ):
+                raise ValidationError("Заявка на этот проект уже отправлена.") from error
+            raise
 
 
 def list_my_applications(user):
-    store = get_store()
-    with store.lock:
-        return sorted(
-            (a for a in store.applications if a.student_id == str(user.pk)),
-            key=lambda a: (a.created_at, a.id), reverse=True,
-        )
+    return Application.objects.filter(user=user).select_related(
+        "project", "role",
+    ).order_by("-created_at", "-pk")

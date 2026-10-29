@@ -1,98 +1,83 @@
-# 103 — проект → заявка → свои заявки
+# 103 — подача заявки через ORM
 
-Ответственный: Влад. Ветка: `feat/103-demo_application`. Цель текущего этапа —
-обычные HTML GET/POST с временным хранилищем вместо ещё не готовых моделей.
-Модели/миграции — Денис, сессия — Даня, шаблоны — Ахад, корневые URL — техлид.
-Это предложение контракта: утверждённого `sprint-4-contract.md` в копии нет.
+Ответственный: Влад. Ветка: `feat/103-demo_application`.
 
-## Передача Ахаду до интеграции
+Цель: заменить временное хранилище моделями из main. Критерии приёмки:
+запись заявки в PostgreSQL, проверка набора, мест, авторства, членства и дублей;
+просмотр только своих заявок, защита от одновременной отправки, вход и CSRF.
+Зависимости: модели и миграции Дениса, авторизация Дани, шаблоны Ахада.
 
-| Метод и URL | Имя | Шаблон и context |
-| --- | --- | --- |
-| GET `/projects/` | `projects:catalog` | `projects/catalog.html`: `projects` |
-| GET `/projects/<uuid:project_id>/` | `projects:detail` | `projects/detail.html`: `project`, `roles`, `form`, `can_apply`, `application_block_reason` |
-| POST `/projects/<uuid:project_id>/apply/` | `applications:submit` | Ошибка: тот же `projects/detail.html` и context, HTTP 200 |
-| GET `/applications/` | `applications:mine` | `applications/my_applications.html`: `applications` |
+В ветку включена сохранённая origin/main (`d494724`) с моделями accounts.User,
+projects.Project, ProjectRole, ProjectMember, applications.Application и
+начальными миграциями. Схема не изменена. Fetch завершился ошибкой TLS GitHub,
+поэтому актуальность удалённой main на момент работы подтвердить не удалось.
 
-Все операции требуют входа. POST — обычная форма с `{% csrf_token %}`,
-`projectRoleId` (UUID роли), `comment` (необязательное письмо ≤300 символов).
-Action: `{% url 'applications:submit' project.id %}`. Пользователь берётся
-исключительно из `request.user`, проект — исключительно из URL.
-При успехе — 302 на `applications:mine`, Django message
-«Заявка успешно отправлена!». Страница списка читает сохранённые объекты.
-Ошибки роли находятся в `form.projectRoleId.errors`, остальные —
-`form.non_field_errors`; связанная форма сохраняет письмо. HTMX пока не реализован.
-Неизвестный проект — 404, неподдерживаемый метод — 405, POST без CSRF — 403.
+## Изменения
 
-Проект: `id`, `title`, `description`, `author_id`, `status` (`open`).
-Роль: `id`, `project_id`, `title`, `is_open`, `total_places`, `filled_places`,
-`is_available`. `roles` содержит все роли; form choices — только доступные.
-Заявка: `id`, `student_id`, `project`, `role`, `comment`, `created_at`,
-`status`, `get_status_display()`; статусы: `pending`, `accepted`, `rejected`.
-Список фильтруется по текущему студенту, новые записи сверху.
+- applications/services.py: ORM вместо памяти, поля user/project/role/comment,
+  pending по умолчанию. Только pending блокирует повторную заявку; rejected
+  допускает повтор. Членство проверяется через ProjectMember.
+- Проверка и создание выполняются в transaction.atomic, сначала блокируется
+  проект, затем роль. Остальные операции изменения набора/состава должны
+  соблюдать этот порядок. Ожидаемый конфликт уникальности переводится в
+  ошибку формы; остальные IntegrityError не скрываются.
+- projects/selectors.py: ORM-выборки, with_occupancy для ролей.
+- projects/views.py, applications/forms.py, временные шаблоны используют
+  name/capacity/occupied_places. Каталог использует main.views.catalog.
+- applications/storage.py удалён. Тесты драфта заменены проверками ORM/HTTP
+  и гонки с отдельными соединениями PostgreSQL. tests/conftest.py поднимает
+  отдельную тестовую БД для pytest без pytest-django.
 
-## Временное хранилище и запуск
+## Подключение
 
-`applications/storage.py` содержит только структуры данных Python, не ORM-модели.
-Данные общие для вкладок одного процесса, защищены RLock на время проверки и
-создания; pending не занимает место. Дубль pending/accepted запрещён на проект
-независимо от роли. Проверяются авторство, членство, набор и вместимость.
-Данные исчезают при перезапуске и **не разделяются между worker-процессами**.
-Хранилище доступно только при `APPLICATIONS_USE_DEMO_STORAGE=True`.
-
-Отдельные `applications/demo_settings.py` и `applications/demo_urls.py` позволяют
-проверить интеграцию без правок командных settings/корневых URL:
+Общие config, README, requirements и базовый шаблон не редактировались.
+Существующий applications.demo_settings теперь подключает applications
+и использует настоящую PostgreSQL. Нужны переменные окружения по README.
 
 ```powershell
-# Переменные окружения и зависимости — по README.
+python manage.py migrate --settings=applications.demo_settings
+python manage.py seed_demo --settings=applications.demo_settings
 python manage.py runserver --settings=applications.demo_settings
 ```
 
-Демо-карточка: `/projects/00000000-0000-0000-0000-000000000001/`.
-Временные HTML-шаблоны лежат в `applications/demo_templates/`; поиск в них
-включён только demo_settings. Ахад создаёт командные шаблоны по таблице выше.
-Текущий accounts/login — заглушка: браузерная отправка требует сессии Дани;
-самодельный вход и запись Django auth-миграций здесь не добавляются.
+Маршруты драфта сохранены: GET /projects/ (projects:catalog),
+GET /projects/<uuid:project_id>/ (projects:detail),
+POST /projects/<uuid:project_id>/apply/ (applications:submit),
+GET /applications/ (applications:mine). Все требуют входа.
+POST принимает projectRoleId и comment до 300 символов; пользователь из
+сессии, проект из URL. Успех: redirect в свои заявки; ошибка: HTTP 200 с формой.
 
-## Подключение реальной БД
+Маршруты /applications/create/, /applications/my/ и HTMX-фрагменты из
+командного контракта этим драфтом пока не реализованы. Подключение общих URL
+и окончательных шаблонов требует согласования с техлидом и Ахадом.
 
-После контракта Дениса заменить storage/selectors и транзакционную часть
-`submit_application`, сохранив HTTP-контракт. Использовать `transaction.atomic`,
-совместимые блокировки проекта/роли, повторное чтение статусов и членства,
-ограничение уникальности активной заявки; ожидаемый IntegrityError переводить
-в ValidationError после выхода из atomic. RLock не заменяет блокировки БД.
-Имена ORM-полей и конкретный UniqueConstraint пока не утверждены.
+## Проверки
 
-Техлиду: подключить `projects.urls` и `applications.urls` по примеру demo_urls,
-зарегистрировать приложения при появлении моделей, согласовать LOGIN_URL.
-Модели, миграции, config, README, requirements и базовый шаблон не меняются.
+Среда: Python 3.14.0, Django 5.2.17; командный Python 3.13.16 не установлен.
+Инструменты установлены только в игнорируемую .venv.
 
-## Проверки и приёмка
+- pip check и manage.py check --settings=applications.demo_settings: успешно.
+- makemigrations --check --dry-run с теми же settings: No changes detected;
+  история миграций не проверена из-за недоступной БД.
+- python -m ruff check applications projects tests: успешно.
+- python -m ruff check .: три существующих RET501 в accounts/middleware.py
+  из main; чужой модуль не исправлялся.
+- git diff --check: успешно.
+- migrate --check и python -m pytest tests блокируются недоступной PostgreSQL
+  на 127.0.0.1:5432. Docker Compose не смог скачать закреплённый образ
+  PostgreSQL 17.11: TLS timeout Docker Hub.
+- Браузерный сценарий и сохранение после перезапуска не проверены без БД.
 
-Регрессии в `tests/projects/` и `tests/applications/` не обращаются к БД;
-они проверяют HTTP, валидацию, приватность, CSRF, повтор из второй вкладки и
-конкурентный дубль в одном процессе. Это не проверка PostgreSQL-транзакций.
-Совместная браузерная проверка с Ахадом, PostgreSQL, сохранение после перезапуска
-и гонки на отдельных соединениях остаются обязательными при интеграции.
+## Передача PR
 
-PR: «103: HTML-подача заявки и свои заявки с явным демохранилищем».
-Публикацию и review выполняет разработчик; результаты локальных команд ниже
-дополняются после запуска.
+Заголовок: «103: заменить хранилище заявок моделями из main».
 
-### Результаты локально
+Описание: Подача и просмотр заявок используют согласованные ORM-модели.
+Транзакция и блокировки защищают от повторной отправки. Формы и шаблоны
+используют реальные поля ролей и занятость из ProjectMember. Схема не меняется.
+Статические проверки изменённых модулей проходят; поведенческие требуют
+доступного PostgreSQL 17.11.
 
-- Python 3.14 (имеется локально; командный Python 3.13.16 не установлен), Django 5.2.17.
-- `python -m pytest tests -q`: **20 passed**, без обращения к БД.
-- `python -m ruff check .` и дополнительная проверка E4/E7/E9/F: успешно.
-- `python -m pip check`: успешно. Инструменты установлены только в игнорируемую
-  `.venv`, командный requirements не менялся.
-- `python manage.py check --settings=applications.demo_settings`: ошибок нет.
-- `makemigrations --check --dry-run --settings=applications.demo_settings`:
-  `No changes detected`, с предупреждением о недоступной истории миграций БД.
-- `migrate --check --settings=applications.demo_settings`: не пройден,
-  локальный PostgreSQL отвечает таймаутом подключения (также вне песочницы).
-- `git diff --check`: успешно.
-
-Проверки на командном Python, PostgreSQL и в браузере с настоящей сессией пока
-не выполнены. В HTTP-тестах тестовый клиент подставляет пользователя в request;
-это проверка границ доступа обработчиков, не проверка реализации входа Дани.
+Следующий шаг Влада: проверки на PostgreSQL 17.11 и Python 3.13.16, браузерный
+сценарий, согласование URL/шаблонов и публикация PR на ревью.
+Push и публикация PR в этой сессии не выполнялись.

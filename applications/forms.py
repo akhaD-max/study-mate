@@ -14,5 +14,5 @@ class ApplicationForm(forms.Form):
     def __init__(self, *args, roles, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["projectRoleId"].choices = [
-            (str(role.id), role.title) for role in roles if role.is_available
+            (str(role.id), role.name) for role in roles if role.is_available
         ]

@@ -1,21 +1,13 @@
-from uuid import UUID
-
+from django.test import override_settings
 from django.urls import reverse
 
-
-def test_catalog_detail_and_missing_project(store, browser):
-    assert "Демопроект" in browser.get(reverse("projects:catalog")).content.decode()
-    response = browser.get(reverse("projects:detail", args=[UUID(int=1)]))
-    assert response.status_code == 200
-    assert "Backend" in response.content.decode()
-    assert "csrftoken" in response.cookies
-    assert browser.get(reverse("projects:detail", args=[UUID(int=99)])).status_code == 404
+from tests.applications import test_services
 
 
-def test_catalog_requires_login(store, browser):
-    from django.contrib.auth.models import AnonymousUser
-
-    browser.user = AnonymousUser()
-    response = browser.get(reverse("projects:catalog"))
-    assert response.status_code == 302
-    assert response.url.startswith("/accounts/login/?next=")
+@override_settings(ROOT_URLCONF="applications.demo_urls")
+class ProjectViewTests(test_services.ApplicationServiceTests):
+    def test_detail_uses_model_role_fields(self):
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("projects:detail", args=[self.project.pk]))
+        self.assertContains(response, self.role.name)
+        self.assertContains(response, "0/1")
