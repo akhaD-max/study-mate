@@ -22,15 +22,4 @@
         <button class="action" type="submit">Опубликовать проект</button>
     </div>
 </form>
-<script>
-    document.body.addEventListener('htmx:afterRequest', function (evt) {
-        var elt = evt.detail.elt;
-        if (elt.matches && elt.matches('button[hx-get*="add_role_row"]')) {
-            var input = document.querySelector('input[name="roles-TOTAL_FORMS"]');
-            if (input) {
-                input.value = String(parseInt(input.value) + 1);
-            }
-        }
-    });
-</script>
 {% endblock %}

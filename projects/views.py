@@ -130,7 +130,15 @@ def add_role_row(request):
     """Возвращает одну пустую строку формы роли для динамического добавления через HTMX."""
     total = int(request.GET.get("total", 0))
     form = ProjectRoleForm(prefix=f"roles-{total}")
-    return render(request, "projects/partials/role_row.html", {"form": form, "index": total})
+    # Возвращаем и строку, и обновлённую management_form
+    return render(request, "projects/partials/role_row.html", {
+        "form": form,
+        "index": total,
+        "role_formset": ProjectRoleFormSet(prefix="roles", data={
+            "roles-TOTAL_FORMS": str(total + 1),
+            "roles-INITIAL_FORMS": "0",
+        }),
+    })
 
 
 @login_required
