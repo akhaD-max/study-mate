@@ -1,0 +1,7 @@
+<div class="role-formset" id="role-formset">
+    {{ role_formset.management_form }}
+    {{ role_formset.non_form_errors }}
+    {% for role_form in role_formset %}
+        <fieldset class="role-fields"><legend>Роль {{ forloop.counter }}</legend>{{ role_form.as_p }}</fieldset>
+    {% endfor %}
+</div>

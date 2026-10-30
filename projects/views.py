@@ -121,7 +121,12 @@ def create(request):
                     form.add_error(None, error)
             else:
                 return redirect("projects:detail", project_id=project.pk)
-    return render(request, "projects/create.html", {"form": form, "role_formset": role_formset})
+    context = {"form": form, "role_formset": role_formset}
+    template = "projects/create.html"
+    if adding_role and request.headers.get("HX-Request") == "true":
+        # HTMX заменяет только набор ролей, не перерисовывая страницу целиком.
+        template = "projects/partials/role_formset.html"
+    return render(request, template, context)
 
 
 @login_required
