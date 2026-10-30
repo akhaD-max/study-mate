@@ -6,11 +6,56 @@
             {% if user.is_authenticated %}
                 <a href="{% url 'projects:mine' %}">Мои проекты</a>
                 <a href="{% url 'applications:mine' %}">Мои заявки</a>
-                <a class="catalog-login" href="{% url 'projects:create' %}">Создать проект</a>
-                <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="catalog-logout" type="submit">Выйти</button></form>
+                <div class="catalog-account">
+                    <button class="account-trigger" type="button" aria-label="Аккаунт пользователя" aria-haspopup="menu" aria-expanded="false" aria-controls="accountMenu">
+                        <span class="account-initials" aria-hidden="true">{{ user.get_short_name|default:user.get_username|slice:":2"|upper }}</span>
+                    </button>
+                    <div class="account-menu" id="accountMenu">
+                        <a class="account-menu-item" href="/accounts/profile/">Мой профиль</a>
+                        <form class="account-logout" method="post" action="{% url 'accounts:logout' %}">
+                            {% csrf_token %}
+                            <button class="account-menu-item" type="submit">Выйти</button>
+                        </form>
+                    </div>
+                </div>
             {% else %}
                 <a class="catalog-login" href="{% url 'accounts:login' %}">Войти</a>
             {% endif %}
         </nav>
     </div>
 </header>
+<script>
+    (function () {
+        'use strict';
+        var trigger = document.querySelector('.account-trigger');
+        var menu = document.getElementById('accountMenu');
+        if (!trigger || !menu) return;
+
+        function setOpen(open) {
+            menu.classList.toggle('open', open);
+            trigger.setAttribute('aria-expanded', String(open));
+        }
+
+        trigger.addEventListener('click', function (event) {
+            event.stopPropagation();
+            setOpen(!menu.classList.contains('open'));
+        });
+
+        document.addEventListener('click', function (event) {
+            if (
+                menu.classList.contains('open')
+                && !trigger.contains(event.target)
+                && !menu.contains(event.target)
+            ) {
+                setOpen(false);
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && menu.classList.contains('open')) {
+                setOpen(false);
+                trigger.focus();
+            }
+        });
+    })();
+</script>

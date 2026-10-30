@@ -8,9 +8,57 @@
 .catalog-brand span { width: 10px; height: 10px; border-radius: 50%; background: var(--catalog-blue); }
 .catalog-header nav { display: flex; align-items: center; gap: 28px; font-size: 15px; font-weight: 600; }
 .catalog-nav-active { color: var(--catalog-blue); }
-.catalog-user { min-width: 48px; padding: 5px 12px; border-radius: 100px; background: var(--catalog-lime); color: #141416; text-align: center; font-size: 14px; font-weight: 800; }
 .catalog-login { padding: 8px 20px; border-radius: 100px; background: var(--catalog-lime); }
-.catalog-logout { border: none; padding: 8px 0; background: transparent; cursor: pointer; color: #4b5563; }
+.catalog-account { position: relative; display: inline-flex; align-items: center; }
+.account-trigger {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid #e6e6e6;
+    background: #ededeb;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.16s ease, border-color 0.16s ease;
+}
+.account-trigger:hover { background: #e2e2e3; border-color: #bcbdbf; }
+.account-trigger:focus-visible { outline: 3px solid var(--catalog-blue); outline-offset: 2px; }
+.account-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 176px;
+    padding: 8px 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgb(0 0 0 / 8%);
+    z-index: 20;
+    display: none;
+    flex-direction: column;
+}
+.account-menu.open { display: flex; }
+.account-menu-item {
+    display: block;
+    width: 100%;
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    text-decoration: none;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+.account-menu-item:hover { background: #f6f8fa; color: var(--catalog-blue); }
+.account-menu-item:focus-visible { outline: 3px solid var(--catalog-blue); outline-offset: 2px; }
 .catalog-main { width: 100%; max-width: 1440px; margin: 0 auto; padding: 20px 48px 64px; flex: 1; }
 .catalog-hero { position: relative; overflow: hidden; padding: 40px 56px; border-radius: 32px; background: var(--catalog-blue); color: white; box-shadow: 0 16px 24px -20px #1648ff99; }
 .catalog-hero-copy { position: relative; z-index: 1; max-width: 65%; }
