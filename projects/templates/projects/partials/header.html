@@ -7,7 +7,19 @@
                 <a href="{% url 'projects:mine' %}">Мои проекты</a>
                 <a href="{% url 'applications:mine' %}">Мои заявки</a>
                 <a class="catalog-login" href="{% url 'projects:create' %}">Создать проект</a>
-                <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="catalog-logout" type="submit">Выйти</button></form>
+                <details class="catalog-user-menu" data-user-menu>
+                    <summary class="catalog-user" aria-haspopup="menu" aria-label="Меню пользователя: {{ user.get_full_name }}">
+                        <span aria-hidden="true">{{ user.get_short_name|slice:":1"|upper }}</span>
+                    </summary>
+                    <div class="catalog-user-dropdown" role="menu">
+                        <p class="catalog-user-name">{{ user.get_full_name }}</p>
+                        <button class="catalog-user-item" type="button" role="menuitem" disabled aria-disabled="true" title="Раздел пока в разработке">Мой профиль</button>
+                        <form class="catalog-user-logout-form" method="post" action="{% url 'accounts:logout' %}">
+                            {% csrf_token %}
+                            <button class="catalog-user-item catalog-user-logout" type="submit" role="menuitem">Выйти</button>
+                        </form>
+                    </div>
+                </details>
             {% else %}
                 <a class="catalog-login" href="{% url 'accounts:login' %}">Войти</a>
             {% endif %}
