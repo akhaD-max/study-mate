@@ -126,6 +126,15 @@ def create(request):
 
 @login_required
 @require_GET
+def add_role_row(request):
+    """Возвращает одну пустую строку формы роли для динамического добавления через HTMX."""
+    total = int(request.GET.get("total", 0))
+    form = ProjectRoleForm(prefix=f"roles-{total}")
+    return render(request, "projects/partials/role_row.html", {"form": form, "index": total})
+
+
+@login_required
+@require_GET
 def mine(request):
     projects = Project.objects.filter(
         Q(author=request.user) | Q(memberships__user=request.user)

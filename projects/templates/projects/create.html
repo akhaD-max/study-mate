@@ -8,13 +8,29 @@
     <h2>Роли в команде</h2>
     <p class="muted">Добавь хотя бы одну роль. На каждую можно пригласить от 1 до 20 участников.</p>
     {{ role_formset.management_form }}
-    {{ role_formset.non_form_errors }}
-    {% for role_form in role_formset %}
-        <fieldset class="role-fields"><legend>Роль {{ forloop.counter }}</legend>{{ role_form.as_p }}</fieldset>
-    {% endfor %}
+    <div id="role-rows">
+        {% for role_form in role_formset %}
+            {% include "projects/partials/role_row.html" with form=role_form index=forloop.counter0 %}
+        {% endfor %}
+    </div>
     <div class="actions">
-        <button class="action secondary" type="submit" name="action" value="add_role" formnovalidate>+ Добавить роль</button>
+        <button class="action secondary" type="button"
+                hx-get="{% url 'projects:add_role_row' %}?total={{ role_formset.total_form_count }}"
+                hx-target="#role-rows"
+                hx-swap="beforeend"
+        >+ Добавить роль</button>
         <button class="action" type="submit">Опубликовать проект</button>
     </div>
 </form>
+<script>
+    document.body.addEventListener('htmx:afterRequest', function (evt) {
+        var elt = evt.detail.elt;
+        if (elt.matches && elt.matches('button[hx-get*="add_role_row"]')) {
+            var input = document.querySelector('input[name="roles-TOTAL_FORMS"]');
+            if (input) {
+                input.value = String(parseInt(input.value) + 1);
+            }
+        }
+    });
+</script>
 {% endblock %}

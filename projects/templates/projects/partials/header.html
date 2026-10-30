@@ -12,7 +12,7 @@
                         <span class="account-initials" aria-hidden="true">{{ user.get_short_name|default:user.get_username|slice:":2"|upper }}</span>
                     </button>
                     <div class="account-menu" id="accountMenu">
-                        <a class="account-menu-item" href="/accounts/profile/">Мой профиль</a>
+                        <span class="account-menu-item">Мой профиль</span>
                         <form class="account-logout" method="post" action="{% url 'accounts:logout' %}">
                             {% csrf_token %}
                             <button class="account-menu-item" type="submit">Выйти</button>

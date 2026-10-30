@@ -28,6 +28,13 @@
 }
 .account-trigger:hover { background: #e2e2e3; border-color: #bcbdbf; }
 .account-trigger:focus-visible { outline: 3px solid var(--catalog-blue); outline-offset: 2px; }
+.account-initials {
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+    color: #111827;
+    letter-spacing: -.02em;
+}
 .account-menu {
     position: absolute;
     top: calc(100% + 8px);
