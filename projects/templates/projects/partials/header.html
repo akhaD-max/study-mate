@@ -6,6 +6,7 @@
             {% if user.is_authenticated %}
                 <a href="{% url 'projects:mine' %}">Мои проекты</a>
                 <a href="{% url 'applications:mine' %}">Мои заявки</a>
+                <a class="catalog-login" href="{% url 'projects:create' %}">Создать проект</a>
                 <div class="catalog-account">
                     <button class="account-trigger" type="button" aria-label="Аккаунт пользователя" aria-haspopup="menu" aria-expanded="false" aria-controls="accountMenu">
                         <span class="account-initials" aria-hidden="true">{{ user.get_short_name|default:user.get_username|slice:":2"|upper }}</span>
