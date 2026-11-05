@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Count, Prefetch, Q
+from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.decorators.vary import vary_on_headers
@@ -9,9 +9,14 @@ from django.views.decorators.vary import vary_on_headers
 from applications.forms import ApplicationForm
 from applications.services import application_block_reason
 
-from .forms import ProjectCreateForm, ProjectRoleFormSet
-from .models import Category, Project, ProjectRole
-from .selectors import get_project, list_roles
+from .forms import CatalogFilterForm, ProjectCreateForm, ProjectRoleFormSet
+from .models import Category, Project
+from .selectors import (
+    catalog_projects,
+    get_project,
+    list_catalog_role_names,
+    list_roles,
+)
 from .services import create_project
 
 
@@ -34,48 +39,47 @@ def detail_context(user, project_id, form=None):
 @require_GET
 @vary_on_headers("HX-Request", "HX-History-Restore-Request")
 def catalog(request):
-    """Каталог открытых проектов с серверной фильтрацией и HTMX."""
-    selected_direction = request.GET.get("direction", "").strip()
-    search_query = request.GET.get("q", "").strip()[:200]
-    sort = request.GET.get("sort", "newest")
-    ordering = {
-        "newest": ("-created_at", "pk"),
-        "oldest": ("created_at", "pk"),
-        "members": ("-member_count", "-created_at", "pk"),
-        "fewer_members": ("member_count", "-created_at", "pk"),
-    }
-    if sort not in ordering:
-        sort = "newest"
-
-    projects = (
-        Project.objects.filter(status=Project.Status.OPEN)
-        .select_related("category", "author")
-        .annotate(member_count=Count("memberships", distinct=True))
-        .prefetch_related(
-            Prefetch(
-                "roles",
-                queryset=ProjectRole.objects.filter(is_open=True).with_occupancy(),
-                to_attr="catalog_roles",
-            )
+    """HTTP-запрос → валидация → выборка БД → страница или HTMX-фрагмент."""
+    form = CatalogFilterForm(request.GET)
+    valid = form.is_valid()
+    values = form.cleaned_data
+    # На ошибочном запросе не выдаём список как будто поиск завершился успешно.
+    projects = catalog_projects(
+        q=values["q"], direction=values["direction"], role=values["role"],
+        open_only=values["open_only"], sort=values["sort"],
+    ) if valid else []
+    page = Paginator(projects, 12).get_page(request.GET.get("page"))
+    # Роли уже загружены через Prefetch: бейдж не создаёт запрос на карточку.
+    for project in page:
+        project.recruitment_open = project.status == Project.Status.OPEN and any(
+            role.free_places > 0 for role in project.catalog_roles
         )
-    )
-    if selected_direction:
-        projects = projects.filter(category__slug=selected_direction)
-    if search_query:
-        projects = projects.filter(
-            Q(title__icontains=search_query) | Q(description__icontains=search_query)
-        )
-    page = Paginator(projects.order_by(*ordering[sort]), 12).get_page(
-        request.GET.get("page")
-    )
+    categories = list(Category.objects.all())
+    role_names = list(list_catalog_role_names())
+    # Успешные поля показываем нормализованными; ошибочный ввод сохраняем,
+    # чтобы пользователь мог исправить его, а не набирать условия заново.
+    selected_direction = values.get("direction", form["direction"].value()) or ""
+    selected_role = values.get("role", form["role"].value()) or ""
     context = {
+        "filter_form": form,
+        "filter_errors": form.errors,
         "projects": page,
         "page_obj": page,
         "project_count": page.paginator.count,
-        "categories": Category.objects.all(),
+        "categories": categories,
+        "role_names": role_names,
         "selected_direction": selected_direction,
-        "search_query": search_query,
-        "sort": sort,
+        "selected_role": selected_role,
+        "unknown_direction": selected_direction and not any(
+            category.slug == selected_direction for category in categories
+        ),
+        "unknown_role": selected_role and not any(
+            name.lower() == selected_role.lower() for name in role_names
+        ),
+        "search_query": values.get("q", form["q"].value()) or "",
+        "sort": values.get("sort", "newest"),
+        "open_only": values.get("open_only", True),
+        "has_filters": bool(request.GET),
     }
     template = "projects/catalog.html"
     if (
@@ -83,7 +87,7 @@ def catalog(request):
         and request.headers.get("HX-History-Restore-Request") != "true"
     ):
         template = "projects/partials/catalog_content.html"
-    return render(request, template, context)
+    return render(request, template, context, status=200 if valid else 400)
 
 
 

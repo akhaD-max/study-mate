@@ -14,11 +14,14 @@ class CatalogRenderingTests(SimpleTestCase):
             getattr(self.queryset, method).return_value = self.queryset
         self.queryset.order_by.return_value = []
         project_patch = patch(
-            "projects.views.Project.objects.filter", return_value=self.queryset
+            "projects.selectors.Project.objects.all", return_value=self.queryset
         )
         category_patch = patch("projects.views.Category.objects.all", return_value=[])
         project_patch.start()
         category_patch.start()
+        role_patch = patch("projects.views.list_catalog_role_names", return_value=[])
+        role_patch.start()
+        self.addCleanup(role_patch.stop)
         self.addCleanup(project_patch.stop)
         self.addCleanup(category_patch.stop)
         self.url = reverse("main:catalog")
@@ -26,7 +29,7 @@ class CatalogRenderingTests(SimpleTestCase):
     def test_empty_database_has_no_demo_cards(self):
         response = self.client.get(self.url)
         self.assertContains(response, "Пока нет проектов")
-        self.assertContains(response, "Проектов: 0")
+        self.assertContains(response, "Найдено проектов: 0")
         self.assertContains(response, "css/catalog.css")
         self.assertNotContains(response, '<article class="catalog-card')
         self.assertNotContains(response, "Личный кабинет")
@@ -56,7 +59,6 @@ class CatalogRenderingTests(SimpleTestCase):
         self.assertContains(response, "Проект &lt;script&gt;")
         self.assertContains(response, "Автор · Наука")
         self.assertContains(response, "Python — свободных мест: 2")
-        self.assertContains(response, "/ 01")
         self.assertNotContains(response, "Проект <script>")
 
     def test_filters_and_invalid_sort(self):
@@ -97,7 +99,7 @@ class CatalogRenderingTests(SimpleTestCase):
         self.assertContains(response, "direction=science")
         self.assertContains(response, "page=2")
         response = self.client.get(self.url, {"page": 2})
-        self.assertContains(response, "/ 13")
+        self.assertContains(response, "Проект 12")
 
 
 class CatalogDatabaseTests(TestCase):
@@ -128,10 +130,10 @@ class CatalogDatabaseTests(TestCase):
     def test_only_existing_open_projects_and_roles(self):
         response = self.client.get(reverse("main:catalog"))
         self.assertContains(response, "Робот")
-        self.assertContains(response, "Макет")
+        self.assertNotContains(response, ">Макет<")
         self.assertNotContains(response, "Закрытый")
         self.assertContains(response, "Python")
-        self.assertEqual(response.context["project_count"], 2)
+        self.assertEqual(response.context["project_count"], 1)
 
     def test_category_search_and_empty_result(self):
         url = reverse("main:catalog")
@@ -154,6 +156,6 @@ class CatalogDatabaseTests(TestCase):
             Project.objects.create(
                 title=f"Новый {index}", author=self.author, category=self.category
             )
-        # Count + projects with joins + prefetched roles + categories.
-        with self.assertNumQueries(4):
+        # Count + projects + prefetched roles + categories + role names.
+        with self.assertNumQueries(5):
             self.client.get(reverse("main:catalog"))
