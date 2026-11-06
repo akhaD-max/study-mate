@@ -1,16 +1,17 @@
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, Prefetch, Q
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
 from applications.forms import ApplicationForm
+from applications.models import Application
 from applications.services import application_block_reason
 
 from .forms import CatalogFilterForm, ProjectCreateForm, ProjectRoleFormSet
-from .models import Category, Project
+from .models import Category, Project, ProjectMember
 from .selectors import (
     catalog_projects,
     get_project,
@@ -20,19 +21,52 @@ from .selectors import (
 from .services import create_project
 
 
+def plural_ru(number, one, few, many):
+    """Русское плюральное окончание для целых чисел."""
+    mod10 = number % 10
+    mod100 = number % 100
+    if mod10 == 1 and mod100 != 11:
+        return one
+    if 2 <= mod10 <= 4 and not 12 <= mod100 <= 14:
+        return few
+    return many
+
+
 def detail_context(user, project_id, form=None):
     project = get_project(project_id)
     roles = list(list_roles(project_id))
     reason = application_block_reason(project, user.pk)
     if not reason and not any(r.is_available for r in roles):
         reason = "Нет доступных ролей."
+    members = list(project.memberships.select_related("user", "role"))
+    team_count = len(members) + 1
+    available_roles = [role for role in roles if role.is_available]
+    for role in roles:
+        role.free_places_label = (
+            f"{role.free_places} "
+            + plural_ru(role.free_places, "свободное место", "свободных места", "свободных мест")
+        )
+    default_form = None
+    if form is None:
+        # Первая доступная роль предвыбрана, как в макете отклика.
+        default_form = ApplicationForm(
+            roles=roles,
+            initial={"projectRoleId": str(available_roles[0].id)} if available_roles else {},
+        )
     return {
         "project": project, "roles": roles,
-        "form": form if form is not None else ApplicationForm(roles=roles),
+        "form": form if form is not None else default_form,
         "can_apply": not reason, "application_block_reason": reason,
-        "members": project.memberships.select_related("user", "role"),
+        "members": members,
+        "team_count": team_count,
+        "team_label": f"Команда · {team_count} "
+        + plural_ru(team_count, "участник", "участника", "участников"),
+        "free_places_total": sum(role.free_places for role in roles),
+        "open_roles_count": len(available_roles),
+        "recruitment_open": project.status == Project.Status.OPEN and bool(available_roles),
+        "looking_for": ", ".join(role.name for role in available_roles),
         "is_owner": project.author_id == user.pk,
-        "is_member": project.memberships.filter(user=user).exists(),
+        "is_member": any(member.user_id == user.pk for member in members),
     }
 
 
@@ -149,10 +183,41 @@ def create(request):
 @login_required
 @require_GET
 def mine(request):
-    projects = Project.objects.filter(
-        Q(author=request.user) | Q(memberships__user=request.user)
-    ).select_related("author", "category").distinct().order_by("-created_at", "pk")
-    return render(request, "projects/mine.html", {"projects": projects})
+    base = (
+        Project.objects.filter(
+            Q(author=request.user) | Q(memberships__user=request.user),
+        )
+        .select_related("author", "category")
+        .distinct()
+        .order_by("-created_at", "pk")
+        .prefetch_related(Prefetch(
+            "memberships",
+            queryset=ProjectMember.objects.filter(user=request.user).select_related("role"),
+            to_attr="my_membership",
+        ))
+    )
+    # «Мои» небольшая выборка: счётчики считаем простыми запросами к одной и той же базе.
+    raw_status = request.GET.get("status", "all")
+    valid_statuses = {"all", *(value for value, _label in Project.Status.choices)}
+    status = raw_status if raw_status in valid_statuses else "all"
+    counts = {"all": base.count()}
+    for value, _label in Project.Status.choices:
+        counts[value] = base.filter(status=value).count()
+    source = base if status == "all" else base.filter(status=status)
+    projects = list(source)
+    pending_map = dict(
+        Application.objects.filter(
+            project__in=projects, status=Application.Status.PENDING,
+        ).values_list("project_id").annotate(total=Count("id")),
+    )
+    for project in projects:
+        project.pending_count = pending_map.get(project.pk, 0)
+    return render(request, "projects/mine.html", {
+        "projects": projects,
+        "counts": counts,
+        "active_status": status,
+        "filter_active": status != "all",
+    })
 
 
 @login_required

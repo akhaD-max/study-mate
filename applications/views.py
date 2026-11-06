@@ -56,12 +56,33 @@ def submit(request, project_id):
     return response
 
 
+def mine_context(request, status="all"):
+    """Контекст «Моих заявок»: фильтр по статусу и счётчики для чипов."""
+    applications = list(list_my_applications(request.user))
+    counts = {"all": len(applications), "pending": 0, "accepted": 0, "rejected": 0}
+    for application in applications:
+        counts[application.status] = counts.get(application.status, 0) + 1
+    if status not in ("all", "pending", "accepted", "rejected"):
+        status = "all"
+    visible = applications if status == "all" else [
+        application for application in applications if application.status == status
+    ]
+    return {
+        "applications": visible,
+        "counts": counts,
+        "active_status": status,
+        "filter_active": status != "all",
+    }
+
+
 @session_required
 @require_GET
 def mine(request):
-    return render(request, "applications/my_applications.html", {
-        "applications": list_my_applications(request.user),
-    })
+    return render(
+        request,
+        "applications/my_applications.html",
+        mine_context(request, request.GET.get("status", "all")),
+    )
 
 
 @session_required
@@ -97,9 +118,9 @@ def withdraw(request, application_id):
     try:
         withdraw_application(user=request.user, application_id=application_id)
     except ValidationError as error:
-        return render(request, "applications/my_applications.html", {
-            "applications": list_my_applications(request.user), "errors": error.messages,
-        })
+        context = mine_context(request)
+        context["errors"] = error.messages
+        return render(request, "applications/my_applications.html", context)
     return redirect("applications:mine")
 
 

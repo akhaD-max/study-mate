@@ -1,13 +1,93 @@
-<section id="application-form" aria-live="polite">
-    <p class="catalog-eyebrow">СЛЕДУЮЩИЙ ШАГ</p><h2>Стань частью команды.</h2>
-    {% if application_block_reason %}<p class="notice">{{ application_block_reason }}</p>{% endif %}
-    {% if can_apply or form.is_bound %}
+<section id="application-form" aria-live="polite" class="pg-apply-card">
+    {% if application_block_reason %}
+        {% if application_block_reason == 'Заявка на этот проект уже отправлена.' %}
+        <div class="state-card">
+            <div class="state-bar state-bar-lime" aria-hidden="true"></div>
+            <h2>Заявка уже отправлена</h2>
+            <p>Вы уже откликнулись на этот проект.<br>Повторная отправка не требуется.</p>
+            <a class="state-btn" href="{% url 'applications:mine' %}">Посмотреть заявку</a>
+        </div>
+        {% elif application_block_reason == 'Набор в проект закрыт.' or application_block_reason == 'Нет доступных ролей.' %}
+        <div class="state-card">
+            <div class="state-bar state-bar-gray" aria-hidden="true"></div>
+            <h2>Набор завершён</h2>
+            <p>Новые заявки больше не принимаются.<br>Найдите другой проект по интересам.</p>
+            <a class="state-btn" href="{% url 'projects:catalog' %}">Перейти к проектам</a>
+        </div>
+        {% else %}
+        <div class="state-card">
+            <div class="state-bar state-bar-gray" aria-hidden="true"></div>
+            <h2>Отклик недоступен</h2>
+            <p>{{ application_block_reason }}</p>
+            <a class="state-btn" href="{% url 'projects:catalog' %}">Перейти к проектам</a>
+        </div>
+        {% endif %}
+    {% else %}
+    <h2 class="pg-apply-title">Откликнуться</h2>
+    <p class="pg-apply-sub">Выберите роль и расскажите о себе.</p>
+
+    {% if form.non_field_errors %}
+    <div class="state-card state-card-inline" role="alert">
+        <div class="state-bar state-bar-coral" aria-hidden="true"></div>
+        <h2>Не удалось отправить</h2>
+        <p>{% for error in form.non_field_errors %}{{ error }}{% endfor %}</p>
+        <p class="state-note">Введённый текст сохранён.</p>
+    </div>
+    {% endif %}
+
     <form method="post" action="{% url 'applications:submit' project.id %}"
           hx-post="{% url 'applications:submit' project.id %}" hx-target="#application-form" hx-swap="outerHTML">
         {% csrf_token %}
-        {{ form.as_p }}
-        {% if can_apply %}<button class="action" type="submit">Отправить заявку</button>{% endif %}
+
+        <fieldset class="pg-role-group">
+            <legend>Роль в проекте <span aria-hidden="true">*</span></legend>
+
+            {% if form.projectRoleId.errors %}
+            <div class="state-card state-card-inline" role="alert">
+                <div class="state-bar state-bar-lime" aria-hidden="true"></div>
+                <h2>Выберите роль</h2>
+                <p>Для отправки заявки нужна роль.<br>Выберите доступную позицию.</p>
+            </div>
+            {% endif %}
+
+            {% for role in roles %}
+                {% with role_id=role.id|stringformat:"s" role_checked=form.projectRoleId.value|stringformat:"s" %}
+                {% if role.is_available %}
+                <label class="pg-role-option{% if role_checked == role_id %} is-selected{% endif %}">
+                    <span class="pg-role-left">
+                        <input type="radio" name="projectRoleId" value="{{ role_id }}"{% if role_checked == role_id %} checked{% endif %}>
+                        <span class="pg-role-name">{{ role.name }}</span>
+                    </span>
+                    <span class="pg-role-meta">{{ role.free_places_label }}</span>
+                </label>
+                {% else %}
+                <label class="pg-role-option is-disabled" aria-disabled="true">
+                    <span class="pg-role-left">
+                        <input type="radio" name="projectRoleId" value="{{ role_id }}" disabled>
+                        <span class="pg-role-name">{{ role.name }}</span>
+                    </span>
+                    <span class="pg-role-meta">Мест нет</span>
+                </label>
+                {% endif %}
+                {% endwith %}
+            {% empty %}
+            <p class="pg-muted">Роли пока не добавлены.</p>
+            {% endfor %}
+            {% if form.projectRoleId.errors %}<p class="pg-field-error" role="alert">{{ form.projectRoleId.errors|striptags }}</p>{% endif %}
+        </fieldset>
+
+        <div class="pg-field">
+            <label for="id_comment">Почему вам интересен проект?</label>
+            <div class="pg-textarea-wrap{% if form.comment.errors %} has-error{% endif %}">
+                <textarea id="id_comment" name="comment" rows="4" maxlength="300" data-counter-for="comment-counter" placeholder="Расскажите о навыках и опыте...">{{ form.comment.value|default:'' }}</textarea>
+                <div class="pg-counter"><span id="comment-counter">{{ form.comment.value|default:''|length }}</span> / 300</div>
+            </div>
+            {% if form.comment.errors %}<p class="pg-field-error" role="alert">{{ form.comment.errors|striptags }}</p>{% endif %}
+        </div>
+
+        <button type="submit" class="pg-btn pg-btn-primary pg-btn-block">{% if form.is_bound and form.errors %}Попробовать снова{% else %}Отправить заявку{% endif %}</button>
+        <p class="pg-disclaimer">Автор увидит ваш профиль и сообщение.</p>
     </form>
     {% endif %}
-    <p><a href="{% url 'applications:mine' %}">Мои заявки →</a></p>
+    <p class="pg-form-foot"><a href="{% url 'applications:mine' %}">Мои заявки →</a></p>
 </section>

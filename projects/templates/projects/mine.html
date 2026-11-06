@@ -1,9 +1,107 @@
 {% extends "workflow.html" %}
 {% block title %}Мои проекты — StudyMate{% endblock %}
 {% block workflow_content %}
-<div class="workflow-heading"><p class="catalog-eyebrow">ТВОИ КОМАНДЫ</p><h1>Мои проекты.</h1><p>Проекты, которыми ты руководишь или в которых участвуешь.</p></div>
-<div class="stack">
-{% for project in projects %}<article class="panel"><h2><a href="{% url 'projects:detail' project.id %}">{{ project.title }}</a></h2><p class="muted">{{ project.category.name }} · {{ project.get_status_display }}</p><div class="actions"><a class="action secondary" href="{% url 'projects:detail' project.id %}">Открыть проект</a>{% if project.author_id == user.pk %}<a class="action" href="{% url 'applications:incoming' project.id %}">Входящие заявки</a>{% else %}<span class="status">Участник команды</span>{% endif %}</div></article>
-{% empty %}<div class="panel"><h2>Здесь будут твои проекты.</h2><p class="muted">Создай свой или найди команду в каталоге.</p><a class="action" href="{% url 'projects:create' %}">Создать проект</a></div>{% endfor %}
+<section class="pg-hero pg-hero-grid-a" aria-labelledby="my-projects-title">
+    <div class="pg-hero-copy">
+        <h1 id="my-projects-title">Мои проекты</h1>
+        <p>Проекты, которыми вы руководите или в которых участвуете.</p>
+    </div>
+    <div class="pg-hero-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4">
+            <line x1="12" y1="2" x2="12" y2="22"></line>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            <line x1="19.07" y1="4.93" x2="4.93" y2="19.07"></line>
+        </svg>
+    </div>
+</section>
+
+<div class="pg-card pg-list">
+    <div class="pg-filters" role="group" aria-label="Фильтр проектов по статусу">
+        <a class="pg-chip{% if active_status == 'all' %} is-active{% endif %}" href="?status=all"{% if active_status == 'all' %} aria-current="true"{% endif %}>Все <span aria-hidden="true">·</span> {{ counts.all }}</a>
+        <a class="pg-chip{% if active_status == 'open' %} is-active{% endif %}" href="?status=open"{% if active_status == 'open' %} aria-current="true"{% endif %}>Открытые <span aria-hidden="true">·</span> {{ counts.open }}</a>
+        <a class="pg-chip{% if active_status == 'in_progress' %} is-active{% endif %}" href="?status=in_progress"{% if active_status == 'in_progress' %} aria-current="true"{% endif %}>В работе <span aria-hidden="true">·</span> {{ counts.in_progress }}</a>
+        <a class="pg-chip{% if active_status == 'completed' %} is-active{% endif %}" href="?status=completed"{% if active_status == 'completed' %} aria-current="true"{% endif %}>Завершённые <span aria-hidden="true">·</span> {{ counts.completed }}</a>
+        <a class="pg-chip{% if active_status == 'cancelled' %} is-active{% endif %}" href="?status=cancelled"{% if active_status == 'cancelled' %} aria-current="true"{% endif %}>Отменённые <span aria-hidden="true">·</span> {{ counts.cancelled }}</a>
+    </div>
+
+    <div class="pg-rows">
+        {% for project in projects %}
+        <article class="pg-row">
+            <div class="pg-row-info">
+                <h2><a href="{% url 'projects:detail' project.id %}">{{ project.title }}</a></h2>
+                <div class="pg-row-role">
+                    {% if project.author_id == user.pk %}Автор проекта{% elif project.my_membership %}Участник · {{ project.my_membership.0.role.name }}{% else %}Участник команды{% endif %}
+                </div>
+                <div class="pg-row-date">Создан {{ project.created_at|date:"j E Y" }}</div>
+            </div>
+            <div class="pg-row-status">
+                {% if project.status == 'open' %}
+                    <span class="pg-badge pg-badge-open">Набор открыт</span>
+                {% elif project.status == 'in_progress' %}
+                    <span class="pg-badge pg-badge-progress">В работе</span>
+                {% elif project.status == 'completed' %}
+                    <span class="pg-badge pg-badge-done">Завершён</span>
+                {% elif project.status == 'cancelled' %}
+                    <span class="pg-badge pg-badge-cancelled">Отменён</span>
+                {% else %}
+                    <span class="pg-badge pg-badge-review">{{ project.get_status_display }}</span>
+                {% endif %}
+                {% if project.author_id == user.pk %}
+                    {% if project.pending_count %}
+                        <p>Заявок на рассмотрении: {{ project.pending_count }}</p>
+                    {% else %}
+                        <p>Вы руководитель проекта.</p>
+                    {% endif %}
+                {% else %}
+                    <p>Вы участник команды проекта.</p>
+                {% endif %}
+            </div>
+            <div class="pg-row-action">
+                <a class="pg-arrow-link" href="{% url 'projects:detail' project.id %}">
+                    К проекту
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" aria-hidden="true">
+                        <path d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                </a>
+                {% if project.author_id == user.pk %}
+                <a class="pg-outline-btn" href="{% url 'applications:incoming' project.id %}">
+                    Входящие заявки{% if project.pending_count %} · {{ project.pending_count }}{% endif %}
+                </a>
+                {% endif %}
+            </div>
+        </article>
+        {% empty %}
+            {% if filter_active %}
+            <div class="pg-empty-wrap">
+                <div class="pg-filter-empty">
+                    <h2>Здесь пусто</h2>
+                    <p>Проектов с выбранным статусом нет. Попробуйте другой фильтр.</p>
+                    <a class="pg-arrow-link" href="?status=all">Показать все проекты
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" aria-hidden="true">
+                            <path d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <div class="pg-empty-wrap">
+                <div class="state-card">
+                    <div class="state-bar state-bar-lime" aria-hidden="true"></div>
+                    <h2>У вас пока нет проектов</h2>
+                    <p>Создайте свой проект или найдите команду в каталоге.</p>
+                    <a class="state-btn" href="{% url 'projects:create' %}">Создать проект</a>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
 </div>
+
+{% if projects or filter_active %}
+<section class="pg-bottom" aria-label="Действия">
+    <p>Хотите попробовать ещё?</p>
+    <a class="pg-btn pg-btn-primary" href="{% url 'projects:create' %}">Создать проект</a>
+</section>
+{% endif %}
 {% endblock %}

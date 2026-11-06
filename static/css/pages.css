@@ -1,0 +1,447 @@
+/* ===== StudyMate · обновлённые страницы сценария =====
+   «Мои заявки», «Мои проекты», «Страница проекта» и состояния отклика.
+   Шапка (catalog-header) и подвал (catalog-footer) не изменяются;
+   этот файл только добавляет новые классы pg-* / state-*. */
+
+/* ----- Общие блоки ----- */
+.pg-hero {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    overflow: hidden;
+    margin-bottom: 24px;
+    padding: 34px 40px;
+    border-radius: 20px;
+    color: #ffffff;
+    box-shadow: 0 1px 2px rgb(16 24 40 / .08);
+}
+.pg-hero-grid-a {
+    background-color: #2055f5;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, .08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .08) 1px, transparent 1px);
+    background-size: 28px 28px;
+}
+.pg-hero-detail {
+    background-color: #1d4ed8;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, .12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .12) 1px, transparent 1px);
+    background-size: 24px 24px;
+    border-radius: 16px;
+    padding: 32px 36px;
+}
+.pg-hero h1 {
+    margin: 0 0 8px;
+    font-size: 30px;
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -.03em;
+    overflow-wrap: anywhere;
+}
+.pg-hero p {
+    margin: 0;
+    max-width: 620px;
+    color: #d5e1fb;
+    font-size: 15px;
+    line-height: 1.55;
+}
+.pg-hero-icon { flex: 0 0 auto; color: #e2f94b; }
+.pg-hero-icon svg { display: block; width: 30px; height: 30px; }
+
+.pg-card {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid #e2e6ee;
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgb(16 24 40 / .04);
+    overflow: hidden;
+}
+.pg-pad { padding: 26px 28px; }
+.pg-muted { margin: 0; color: #6b7280; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+
+.pg-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 22px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .15s ease, box-shadow .15s ease, color .15s ease;
+}
+.pg-btn-primary { background: #2055f5; color: #ffffff; box-shadow: 0 1px 2px rgb(16 24 40 / .08); }
+.pg-btn-primary:hover { background: #1648e6; box-shadow: 0 8px 18px -10px rgb(32 85 245 / .65); }
+.pg-btn-block { width: 100%; }
+
+.pg-arrow-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #2055f5;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.pg-arrow-link svg { width: 16px; height: 16px; transition: transform .15s ease; }
+.pg-arrow-link:hover { color: #1648e6; }
+.pg-arrow-link:hover svg { transform: translateX(4px); }
+
+.pg-back-link { color: #2055f5; font-size: 14px; font-weight: 600; text-decoration: none; }
+.pg-back-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.pg-withdraw { margin: 2px 0 0; }
+.pg-withdraw-btn {
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    color: #b44136;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.pg-withdraw-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.pg-bottom { margin: 28px 4px 8px; }
+.pg-bottom > p { margin: 0 0 12px; color: #4b5563; font-size: 14px; }
+
+/* ----- Бейджи статусов (палитра состояний) ----- */
+.pg-badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+    white-space: nowrap;
+}
+.pg-badge-review { background: #dbe3eb; color: #374151; }
+.pg-badge-accepted { background: #e2f0c7; color: #1f2937; }
+.pg-badge-rejected { background: #f9dede; color: #7f1d1d; }
+.pg-badge-open { background: #ebf7d9; color: #4f7b23; }
+.pg-badge-progress { background: #e8efff; color: #2055f5; }
+.pg-badge-done { background: #eef0f3; color: #5b6472; }
+.pg-badge-cancelled { background: #fae8e6; color: #b44136; }
+
+/* ----- Карточка списка + фильтры ----- */
+.pg-list { margin-bottom: 8px; }
+.pg-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 18px 24px;
+    border-bottom: 1px solid #edf0f6;
+    background: linear-gradient(#f5f7fc, #ffffff);
+}
+.pg-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 10px;
+    background: #edf1f7;
+    color: #3f4756;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background .15s ease, color .15s ease;
+}
+.pg-chip:hover { background: #e1e7f0; color: #1a1f2c; }
+.pg-chip.is-active { background: #d9f953; color: #1a1f2c; font-weight: 600; }
+.pg-chip span { opacity: .55; }
+
+.pg-rows { display: block; }
+.pg-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 26px 28px;
+    transition: background .15s ease;
+}
+.pg-row + .pg-row { border-top: 1px solid #eef1f6; }
+.pg-row:hover { background: #fbfcfe; }
+
+.pg-row-info { flex: 1 1 34%; min-width: 0; }
+.pg-row-info h2 { margin: 0 0 6px; font-size: 20px; line-height: 1.25; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.pg-row-info h2 a { color: #161c2d; text-decoration: none; }
+.pg-row-info h2 a:hover { color: #2055f5; }
+.pg-row-role { margin: 0 0 6px; color: #4b5563; font-size: 14px; overflow-wrap: anywhere; }
+.pg-row-date { margin: 0; color: #6e7687; font-size: 13px; }
+.pg-row-comment {
+    display: -webkit-box;
+    overflow: hidden;
+    margin: 10px 0 0;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.pg-row-status {
+    flex: 1 1 34%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+}
+.pg-row-status > p { margin: 0; color: #4b5563; font-size: 13px; line-height: 1.5; }
+
+.pg-row-action {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    padding-top: 4px;
+}
+.pg-outline-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: 1px solid #d7dce6;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #2055f5;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .15s ease, border-color .15s ease;
+}
+.pg-outline-btn:hover { background: #eef2ff; border-color: #b9c8f5; }
+
+.pg-empty-wrap { padding: 32px 24px; }
+.pg-empty-wrap .state-card { max-width: 540px; margin: 0 auto; }
+.pg-filter-empty { max-width: 540px; margin: 0 auto; padding: 12px; text-align: center; }
+.pg-filter-empty h2 { margin: 0 0 10px; font-size: 22px; letter-spacing: -.02em; color: #161c2d; }
+.pg-filter-empty p { margin: 0 0 16px; color: #6b7280; font-size: 14px; }
+
+/* ----- Страница проекта ----- */
+.pg-tags { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 20px; }
+.pg-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: #eceff3;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+}
+.pg-tag-lime { background: #ebf7db; color: #4a7c12; }
+
+.pg-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    gap: 24px;
+    align-items: start;
+    margin-bottom: 8px;
+}
+.pg-detail-main { display: grid; gap: 20px; align-content: start; }
+
+.pg-card-icon {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #eff4ff;
+    color: #2563eb;
+}
+.pg-card-icon svg { width: 18px; height: 18px; }
+
+.pg-card-title { margin: 0 0 14px; padding-right: 44px; color: #111827; font-size: 19px; line-height: 1.3; letter-spacing: -.02em; }
+.pg-card-subtitle { margin: 0 0 4px; color: #111827; font-size: 15px; font-weight: 700; }
+.pg-prose { margin: 0; color: #4b5563; font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
+.pg-prose p { margin: 0 0 10px; }
+.pg-prose p:last-child { margin-bottom: 0; }
+
+.pg-divider { border: 0; border-top: 1px solid #eef0f5; margin: 18px 0; }
+
+.pg-role-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 2px;
+    border-top: 1px solid #f0f2f7;
+}
+.pg-role-row strong { color: #111827; font-size: 14px; }
+
+.pg-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.pg-stat-label { margin: 0 0 4px; color: #6b7280; font-size: 12px; }
+.pg-stat-value { margin: 0; color: #111827; font-size: 15px; font-weight: 600; }
+.pg-footnote { margin: 16px 0 0; color: #6b7280; font-size: 12px; }
+
+.pg-member-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.pg-member-pill {
+    padding: 7px 14px;
+    border-radius: 8px;
+    background: #f1f3f7;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+.pg-member-empty { color: #6b7280; font-size: 14px; }
+.pg-team .pg-withdraw { margin-top: 12px; }
+
+/* ----- Откликнуться (форма и состояния) ----- */
+.pg-apply-card {
+    position: relative;
+    background: #f8faff;
+    border: 1px solid #dbe6fd;
+    border-radius: 20px;
+    padding: 26px 28px;
+    box-shadow: 0 1px 2px rgb(16 24 40 / .04);
+}
+.pg-apply-title { margin: 0 0 4px; color: #111827; font-size: 24px; letter-spacing: -.02em; }
+.pg-apply-sub { margin: 0 0 18px; color: #6b7280; font-size: 14px; }
+
+.pg-role-group { margin: 0 0 16px; padding: 0; border: 0; }
+.pg-role-group legend {
+    padding: 0;
+    margin-bottom: 8px;
+    color: #4b5563;
+    font-size: 12px;
+    font-weight: 600;
+}
+.pg-role-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    padding: 12px 14px;
+    border: 1px solid #e5e9f2;
+    border-radius: 14px;
+    background: rgb(255 255 255 / .75);
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+}
+.pg-role-option:hover { background: #ffffff; }
+.pg-role-option.is-selected { background: #ebf7db; border-color: #d5eeb5; }
+.pg-role-option.is-disabled { opacity: .55; cursor: not-allowed; }
+.pg-role-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pg-role-option input { width: 16px; height: 16px; margin: 0; accent-color: #2563eb; }
+.pg-role-name { color: #374151; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.pg-role-option.is-selected .pg-role-name { color: #111827; font-weight: 700; }
+.pg-role-meta { color: #6b7280; font-size: 12px; white-space: nowrap; }
+
+.pg-field { margin-bottom: 16px; }
+.pg-field > label { display: block; margin-bottom: 6px; color: #4b5563; font-size: 12px; font-weight: 600; }
+.pg-textarea-wrap {
+    border: 1px solid #e2e6ee;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: inset 0 1px 2px rgb(16 24 40 / .05);
+    transition: border-color .15s ease, box-shadow .15s ease;
+}
+.pg-textarea-wrap:focus-within { border-color: #93b4f5; box-shadow: 0 0 0 3px rgb(37 99 235 / .12); }
+.pg-textarea-wrap.has-error { border-color: #e2a1a1; }
+.pg-textarea-wrap textarea {
+    display: block;
+    width: 100%;
+    padding: 12px 14px 4px;
+    border: 0;
+    border-radius: 14px 14px 0 0;
+    background: transparent;
+    resize: none;
+    font-family: inherit;
+    font-size: 14px;
+    color: #1f2937;
+}
+.pg-textarea-wrap textarea:focus { outline: none; }
+.pg-textarea-wrap textarea::placeholder { color: #b6bcc9; }
+.pg-counter { padding: 2px 12px 8px; color: #6b7280; font-size: 11px; text-align: right; }
+.pg-field-error { margin: 6px 2px 0; color: #b32632; font-size: 12px; }
+.pg-disclaimer { margin: 12px 0 0; color: #6b7280; font-size: 12px; text-align: center; }
+.pg-form-foot { margin: 14px 4px 0; font-size: 13px; }
+.pg-form-foot a { color: #2055f5; font-weight: 600; text-decoration: none; }
+.pg-form-foot a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ----- Состояния (по макету «Состояния интерфейса») ----- */
+.state-card {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid #eef0f5;
+    border-radius: 16px;
+    padding: 22px 24px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / .02);
+}
+.state-bar { width: 34px; height: 4px; margin-bottom: 16px; border-radius: 999px; }
+.state-bar-lime { background: #c2ea37; }
+.state-bar-coral { background: #f46b45; }
+.state-bar-gray { background: #cfd8dc; }
+.state-card h2 { margin: 0 0 8px; color: #111827; font-size: 21px; line-height: 1.3; letter-spacing: -.02em; }
+.state-card p { margin: 0; color: #4b5563; font-size: 14px; line-height: 1.6; }
+.state-note { margin-top: 8px !important; color: #6b7280 !important; font-size: 12px !important; }
+.state-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 46px;
+    margin-top: 18px;
+    padding: 12px 18px;
+    border: 0;
+    border-radius: 12px;
+    background: #1b4cfb;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .15s ease;
+}
+.state-btn:hover { background: #143ed4; }
+.state-card-inline { margin-bottom: 14px; }
+.state-card-inline h2 { font-size: 17px; }
+.state-badge { margin-top: 14px; align-self: flex-start; }
+
+.pg-owner .pg-btn { margin-top: 16px; }
+.pg-apply-page { max-width: 600px; }
+.pg-eyebrow-dark { margin: 0 0 6px; color: #2055f5; font-size: 11px; font-weight: 800; letter-spacing: .09em; }
+
+/* ----- Адаптив ----- */
+@media (max-width: 1020px) {
+    .pg-detail-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 900px) {
+    .pg-hero { padding: 26px 24px; border-radius: 16px; }
+    .pg-hero-detail { padding: 24px; }
+    .pg-hero h1 { font-size: 25px; }
+    .pg-row { flex-direction: column; gap: 16px; padding: 22px 20px; }
+    .pg-row-action { flex-direction: row; align-items: center; justify-content: flex-start; width: 100%; padding-top: 0; }
+    .pg-row-status { flex-basis: auto; width: 100%; }
+    .pg-pad { padding: 20px; }
+    .pg-apply-card { padding: 20px; }
+    .pg-role-row { align-items: flex-start; flex-direction: column; gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .pg-arrow-link svg { transition: none; }
+    .pg-arrow-link:hover svg { transform: none; }
+    .pg-chip, .pg-row, .pg-btn, .pg-role-option { transition: none; }
+}

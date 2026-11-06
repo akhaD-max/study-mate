@@ -1,22 +1,108 @@
 {% extends "workflow.html" %}
 {% block title %}{{ project.title }} — StudyMate{% endblock %}
 {% block workflow_content %}
-<a class="back-link" href="{% url 'projects:catalog' %}">← Каталог проектов</a>
-<div class="workflow-heading"><p class="catalog-eyebrow">{{ project.category.name }} / {{ project.get_status_display }}</p><h1>{{ project.title }}</h1><p>Руководитель: {{ project.author.get_full_name }}</p></div>
-<div class="detail-grid">
-    <div class="stack">
-        <section class="panel"><h2>О проекте</h2><div class="prose">{{ project.description|linebreaks }}</div></section>
-        <section class="panel"><h2>Кого ждём в команду</h2>
-            {% for role in roles %}<div class="role-row"><div><strong>{{ role.name }}</strong><p class="muted">Занято {{ role.occupied_places }}/{{ role.capacity }} · Свободно: {{ role.free_places }}</p></div><span class="status">{% if role.is_available %}Набор открыт{% else %}Набор закрыт{% endif %}</span></div>{% empty %}<p class="muted">Роли пока не добавлены.</p>{% endfor %}
-        </section>
-        <section class="panel"><h2>Команда</h2><p>{{ project.author.get_full_name }} · Руководитель</p>
-            {% for member in members %}<p>{{ member.user.get_full_name }} · {{ member.role.name }}</p>{% empty %}<p class="muted">Первый участник может быть совсем рядом.</p>{% endfor %}
-            {% if is_member %}<form method="post" action="{% url 'applications:leave' project.id %}">{% csrf_token %}<button class="action secondary" type="submit">Покинуть проект</button></form>{% endif %}
-        </section>
+<section class="pg-hero pg-hero-detail" aria-labelledby="project-title">
+    <div class="pg-hero-copy">
+        <h1 id="project-title">{{ project.title }}</h1>
+        <p>{{ project.description|truncatechars:150|default:project.category.name }}</p>
     </div>
-    <aside class="panel apply-panel">
-        {% if is_owner %}<p class="catalog-eyebrow">ТВОЙ ПРОЕКТ</p><h2>Собирай команду.</h2><p class="muted">Здесь можно посмотреть кандидатов и принять решение по каждой заявке.</p><a class="action" href="{% url 'applications:incoming' project.id %}">Входящие заявки</a>
-        {% else %}{% include "applications/partials/form.html" %}{% endif %}
+</section>
+
+<div class="pg-tags" aria-label="Параметры проекта">
+    <span class="pg-tag">{{ project.category.name }}</span>
+    {% if recruitment_open %}
+        <span class="pg-tag pg-tag-lime">Набор открыт</span>
+    {% else %}
+        <span class="pg-tag">Набор завершён</span>
+    {% endif %}
+    <span class="pg-tag">{{ team_label }}</span>
+</div>
+
+<div class="pg-detail-grid">
+    <div class="pg-detail-main">
+        <section class="pg-card pg-pad" aria-labelledby="about-title">
+            <div class="pg-card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+            </div>
+            <h2 class="pg-card-title" id="about-title">О проекте</h2>
+            {% if project.description %}
+                <div class="pg-prose">{{ project.description|linebreaks }}</div>
+            {% else %}
+                <p class="pg-muted">Автор пока не добавил описание проекта.</p>
+            {% endif %}
+
+            <hr class="pg-divider">
+
+            <h3 class="pg-card-subtitle">Кого ждём в команду</h3>
+            {% for role in roles %}
+            <div class="pg-role-row">
+                <div>
+                    <strong>{{ role.name }}</strong>
+                    <p class="pg-row-date">Занято {{ role.occupied_places }}/{{ role.capacity }} · Свободно: {{ role.free_places }}</p>
+                </div>
+                {% if role.is_available %}
+                    <span class="pg-badge pg-badge-open">Набор открыт</span>
+                {% else %}
+                    <span class="pg-badge pg-badge-done">Набор закрыт</span>
+                {% endif %}
+            </div>
+            {% empty %}
+            <p class="pg-muted">Роли пока не добавлены.</p>
+            {% endfor %}
+
+            <hr class="pg-divider">
+
+            <div class="pg-stats">
+                <div>
+                    <p class="pg-stat-label">Свободных мест</p>
+                    <p class="pg-stat-value">{{ free_places_total }}</p>
+                </div>
+                <div>
+                    <p class="pg-stat-label">Ролей в наборе</p>
+                    <p class="pg-stat-value">{{ open_roles_count }}</p>
+                </div>
+            </div>
+            <p class="pg-footnote">{% if recruitment_open %}Заявки принимаются, пока открыт набор.{% else %}Набор завершён. Новые заявки не принимаются.{% endif %}</p>
+        </section>
+
+        <section class="pg-card pg-pad pg-team" aria-labelledby="team-title">
+            <h2 class="pg-card-title" id="team-title">{{ team_label }}</h2>
+            <div class="pg-member-pills">
+                <span class="pg-member-pill">{{ project.author.get_full_name }} · Автор проекта</span>
+                {% for member in members %}<span class="pg-member-pill">{{ member.user.get_full_name }} · {{ member.role.name }}</span>{% endfor %}
+            </div>
+            {% if not members %}<p class="pg-muted">Первый участник может быть совсем рядом.</p>{% endif %}
+            {% if looking_for %}
+                <p class="pg-muted">Ищем: {{ looking_for }}.</p>
+            {% else %}
+                <p class="pg-muted">Свободных мест по ролям сейчас нет.</p>
+            {% endif %}
+            {% if is_member %}
+            <form method="post" action="{% url 'applications:leave' project.id %}">
+                {% csrf_token %}
+                <button class="pg-withdraw-btn" type="submit">Покинуть проект</button>
+            </form>
+            {% endif %}
+        </section>
+
+        <div>
+            <a class="pg-back-link" href="{% url 'projects:catalog' %}">← Вернуться к проектам</a>
+        </div>
+    </div>
+
+    <aside aria-label="Отклик на проект">
+        {% if is_owner %}
+        <div class="pg-apply-card pg-owner">
+            <p class="pg-eyebrow-dark">ТВОЙ ПРОЕКТ</p>
+            <h2 class="pg-apply-title">Собирай команду.</h2>
+            <p class="pg-apply-sub">Здесь можно посмотреть кандидатов и принять решение по каждой заявке.</p>
+            <a class="pg-btn pg-btn-primary pg-btn-block" href="{% url 'applications:incoming' project.id %}">Входящие заявки</a>
+        </div>
+        {% else %}
+        {% include "applications/partials/form.html" %}
+        {% endif %}
     </aside>
 </div>
 {% endblock %}

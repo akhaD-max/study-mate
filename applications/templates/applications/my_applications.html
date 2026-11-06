@@ -1,12 +1,94 @@
 {% extends "workflow.html" %}
 {% block title %}Мои заявки — StudyMate{% endblock %}
 {% block workflow_content %}
-<div class="workflow-heading"><p class="catalog-eyebrow">ТВОИ ВОЗМОЖНОСТИ</p><h1>Мои заявки.</h1><p>Следи за ответами команд и выбирай следующий шаг.</p></div>
-<div class="stack">
-{% for application in applications %}
-<article class="panel"><span class="status">{{ application.get_status_display }}</span><h2><a href="{% url 'projects:detail' application.project.id %}">{{ application.project.title }}</a></h2><p class="muted">{{ application.role.name }} · {{ application.created_at|date:"d.m.Y" }}</p><p class="prose">{{ application.comment }}</p>
-{% if application.status == 'pending' %}<form method="post" action="{% url 'applications:withdraw' application.id %}">{% csrf_token %}<button class="action secondary" type="submit">Отозвать заявку</button></form>{% endif %}
-</article>
-{% empty %}<div class="panel"><h2>Вы ещё не отправили ни одной заявки</h2><p class="muted">Найди идею, в которую хочется вложиться.</p><a class="action" href="{% url 'projects:catalog' %}">Найти проект</a></div>{% endfor %}
+<section class="pg-hero pg-hero-grid-a" aria-labelledby="my-applications-title">
+    <div class="pg-hero-copy">
+        <h1 id="my-applications-title">Мои заявки</h1>
+        <p>Следите за откликами и решениями авторов проектов.</p>
+    </div>
+    <div class="pg-hero-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4">
+            <line x1="12" y1="2" x2="12" y2="22"></line>
+            <line x1="2" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            <line x1="19.07" y1="4.93" x2="4.93" y2="19.07"></line>
+        </svg>
+    </div>
+</section>
+
+<div class="pg-card pg-list">
+    <div class="pg-filters" role="group" aria-label="Фильтр заявок по статусу">
+        <a class="pg-chip{% if active_status == 'all' %} is-active{% endif %}" href="?status=all"{% if active_status == 'all' %} aria-current="true"{% endif %}>Все <span aria-hidden="true">·</span> {{ counts.all }}</a>
+        <a class="pg-chip{% if active_status == 'pending' %} is-active{% endif %}" href="?status=pending"{% if active_status == 'pending' %} aria-current="true"{% endif %}>На рассмотрении <span aria-hidden="true">·</span> {{ counts.pending }}</a>
+        <a class="pg-chip{% if active_status == 'accepted' %} is-active{% endif %}" href="?status=accepted"{% if active_status == 'accepted' %} aria-current="true"{% endif %}>Приняты <span aria-hidden="true">·</span> {{ counts.accepted }}</a>
+        <a class="pg-chip{% if active_status == 'rejected' %} is-active{% endif %}" href="?status=rejected"{% if active_status == 'rejected' %} aria-current="true"{% endif %}>Отклонены <span aria-hidden="true">·</span> {{ counts.rejected }}</a>
+    </div>
+
+    <div class="pg-rows">
+        {% for application in applications %}
+        <article class="pg-row">
+            <div class="pg-row-info">
+                <h2><a href="{% url 'projects:detail' application.project.id %}">{{ application.project.title }}</a></h2>
+                <div class="pg-row-role">{{ application.role.name }}</div>
+                <div class="pg-row-date">Отправлена {{ application.created_at|date:"j E Y" }}</div>
+                {% if application.comment %}<p class="pg-row-comment">{{ application.comment }}</p>{% endif %}
+            </div>
+            <div class="pg-row-status">
+                {% if application.status == 'pending' %}
+                    <span class="pg-badge pg-badge-review">На рассмотрении</span>
+                    <p>Автор ещё не принял решение.</p>
+                    <form method="post" action="{% url 'applications:withdraw' application.id %}" class="pg-withdraw">
+                        {% csrf_token %}
+                        <button class="pg-withdraw-btn" type="submit">Отозвать заявку</button>
+                    </form>
+                {% elif application.status == 'accepted' %}
+                    <span class="pg-badge pg-badge-accepted">Принята</span>
+                    <p>Вы приняты в команду проекта.</p>
+                {% elif application.status == 'rejected' %}
+                    <span class="pg-badge pg-badge-rejected">Отклонена</span>
+                    <p>Автор выбрал другого участника.</p>
+                {% endif %}
+            </div>
+            <div class="pg-row-action">
+                <a class="pg-arrow-link" href="{% url 'projects:detail' application.project.id %}">
+                    К проекту
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" aria-hidden="true">
+                        <path d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                </a>
+            </div>
+        </article>
+        {% empty %}
+            {% if filter_active %}
+            <div class="pg-empty-wrap">
+                <div class="pg-filter-empty">
+                    <h2>Здесь пусто</h2>
+                    <p>Заявок с выбранным статусом нет. Попробуйте другой фильтр.</p>
+                    <a class="pg-arrow-link" href="?status=all">Показать все заявки
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" aria-hidden="true">
+                            <path d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <div class="pg-empty-wrap">
+                <div class="state-card">
+                    <div class="state-bar state-bar-lime" aria-hidden="true"></div>
+                    <h2>У вас пока нет заявок</h2>
+                    <p>Откликнитесь на интересный проект.<br>Здесь появится статус вашей заявки.</p>
+                    <a class="state-btn" href="{% url 'projects:catalog' %}">Найти проект</a>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
 </div>
+
+{% if applications or filter_active %}
+<section class="pg-bottom" aria-label="Действия">
+    <p>Хотите попробовать ещё?</p>
+    <a class="pg-btn pg-btn-primary" href="{% url 'projects:catalog' %}">Найти другой проект</a>
+</section>
+{% endif %}
 {% endblock %}
