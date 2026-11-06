@@ -60,6 +60,19 @@ def catalog(request):
     # чтобы пользователь мог исправить его, а не набирать условия заново.
     selected_direction = values.get("direction", form["direction"].value()) or ""
     selected_role = values.get("role", form["role"].value()) or ""
+    search_query = values.get("q", form["q"].value()) or ""
+    # Радиокнопки не умеют показывать невалидный ввод, поэтому при ошибке
+    # сохраняем выбор по сырому значению: повтор open_only=false не должен
+    # молча переключать интерфейс на «Только с открытым набором».
+    raw_open_only = request.GET.get("open_only")
+    selected_open_only = values.get(
+        "open_only", raw_open_only != "false" if raw_open_only is not None else True
+    )
+    # «Нет данных» и «нет совпадений» различаются только смысловыми условиями:
+    # page, sort и неизвестные параметры не превращают пустую базу в пустую выдачу.
+    has_filters = bool(search_query or selected_direction or selected_role) or (
+        raw_open_only == "false"
+    )
     context = {
         "filter_form": form,
         "filter_errors": form.errors,
@@ -76,10 +89,10 @@ def catalog(request):
         "unknown_role": selected_role and not any(
             name.lower() == selected_role.lower() for name in role_names
         ),
-        "search_query": values.get("q", form["q"].value()) or "",
+        "search_query": search_query,
         "sort": values.get("sort", "newest"),
-        "open_only": values.get("open_only", True),
-        "has_filters": bool(request.GET),
+        "open_only": selected_open_only,
+        "has_filters": has_filters,
     }
     template = "projects/catalog.html"
     if (

@@ -67,7 +67,7 @@ class CatalogRenderingTests(SimpleTestCase):
         )
         self.queryset.filter.assert_any_call(category__slug="science")
         self.queryset.order_by.assert_called_once_with("-created_at", "pk")
-        self.assertContains(response, "Проекты не найдены")
+        self.assertContains(response, "Проекты с такими параметрами не найдены")
         self.assertContains(response, "Сбросить фильтры")
         self.assertContains(response, 'value="робот"')
 
@@ -143,13 +143,50 @@ class CatalogDatabaseTests(TestCase):
         self.assertNotContains(response, ">Макет<")
         response = self.client.get(url, {"direction": "design", "q": "робот"})
         self.assertEqual(response.context["project_count"], 0)
-        self.assertContains(response, "Проекты не найдены")
+        self.assertContains(response, "Проекты с такими параметрами не найдены")
 
     def test_empty_database(self):
         Project.objects.all().delete()
         response = self.client.get(reverse("main:catalog"))
         self.assertContains(response, "Пока нет проектов")
         self.assertNotContains(response, '<article class="catalog-card')
+
+    def test_empty_result_offers_reset_inside_empty_state(self):
+        url = reverse("main:catalog")
+        response = self.client.get(url, {"q": "нет такого проекта"})
+        self.assertContains(response, "Проекты с такими параметрами не найдены")
+        # Одна ссылка сброса в панели фильтров и одна — в самом пустом состоянии.
+        self.assertContains(response, "Сбросить фильтры", count=2)
+        empty_state = response.content.decode().split('class="catalog-empty" role="status"', 1)[1]
+        self.assertIn("Сбросить фильтры", empty_state)
+        self.assertIn('hx-target="#catalog-content"', empty_state)
+
+    def test_empty_database_versus_empty_result_without_semantic_filters(self):
+        Project.objects.all().delete()
+        url = reverse("main:catalog")
+        # page, sort и неизвестные параметры — не условия поиска: данных просто нет.
+        for params in ({"page": "2"}, {"sort": "oldest"}, {"utm_source": "link"}):
+            with self.subTest(params=params):
+                response = self.client.get(url, params)
+                self.assertContains(response, "Пока нет проектов")
+        # Смысловые условия превращают пустую базу в пустую выдачу.
+        for params in (
+            {"q": "робот"},
+            {"direction": "science"},
+            {"role": "Python"},
+            {"open_only": "false"},
+        ):
+            with self.subTest(params=params):
+                response = self.client.get(url, params)
+                self.assertContains(response, "Проекты с такими параметрами не найдены")
+
+    def test_invalid_open_only_repeat_keeps_selected_option(self):
+        response = self.client.get(
+            reverse("main:catalog"), {"open_only": ["false", "false"]}
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, 'value="false" checked', status_code=400)
+        self.assertContains(response, "Передайте параметр один раз", status_code=400)
 
     def test_query_count_does_not_grow_with_cards(self):
         for index in range(5):
