@@ -1,0 +1,344 @@
+openapi: 3.1.0
+info:
+  title: StudyMate — каталог проектов
+  version: sprint-6-2026-11-06
+  description: |
+    Фактический HTTP-контракт каталога Sprint 6. Сверен с исходниками ветки
+    `arena/999a17b1-study-mate` (исходный коммит `2059ff6`) и реальными ответами
+    Django 5.2.17 на PostgreSQL 17.11 с локалью C.UTF-8.
+
+    Это HTML/HTMX-интерфейс, а не JSON API. Обычный запрос возвращает полную
+    страницу; HTMX — фрагмент для замены `#catalog-content`. Авторизация для
+    поиска не нужна, GET не изменяет данные и не требует CSRF. Сессия влияет
+    только на навигацию страницы, не на состав каталога.
+
+    Файл является спецификацией в репозитории. HTTP-маршрут `/openapi.yaml`,
+    Swagger UI и CORS в приложение не добавлены. Для демонстрации используйте
+    curl или браузер по адресу запущенного приложения. Импортировать файл в
+    сторонний Swagger Editor можно для чтения контракта; его кнопка Try it out
+    не обходит ограничения браузера, Mixed Content и отсутствие CORS.
+
+    Множественные направления/роли, сложность, навыки и автопоиск от трёх
+    символов относятся к будущей версии и здесь не документированы как готовые.
+    Поисковые параметры этого контракта одиночные; `q` работает от одного
+    непробельного символа. Повтор любого известного параметра даёт 400.
+    Неизвестные параметры, включая старые альтернативные имена фильтров, игнорируются.
+servers:
+  - url: http://localhost:8000
+    description: Локальный запуск с WEB_PORT=8000; при другом порте замените адрес.
+  - url: /
+    description: Тот же origin, если спецификация обслуживается рядом с приложением.
+tags:
+  - name: Catalog
+    description: Поиск учебных проектов и доступных ролей.
+security: []
+paths:
+  /projects/:
+    get:
+      tags: [Catalog]
+      operationId: getProjectCatalog
+      summary: Найти проекты по тексту, направлению, роли и доступности набора
+      description: |
+        Условия объединяются через AND; совпадение текста в названии или
+        описании — через OR. Крайние пробелы текстовых полей удаляются Django
+        Form. Поиск регистронезависимый, подстрочный; морфологии, исправления
+        опечаток и автоматической эквивалентности е/ё нет. `%` и `_` — текст.
+
+        При `open_only=true` проект должен иметь статус `open` и хотя бы одну
+        роль, у которой одновременно `is_open=true` и capacity больше числа
+        записей ProjectMember этой роли. Pending-заявки места не занимают.
+        Если задана `role`, все проверки набора применяются к той же роли.
+        При `open_only=false` статус проекта и открытость ролей не ограничивают
+        выдачу; выбранная роль всё равно должна существовать в проекте.
+        Наличие карточки не резервирует место и не разрешает заявку.
+
+        `direction` сравнивается с Category.slug; варианты формы берутся из БД.
+        `role` сравнивается с ProjectRole.name через iexact. Список ролей собираётся
+        из всех проектов, объединяя различия регистра; это не отдельный справочник.
+        Корректные, но отсутствующие direction/role дают 200 и пустую выдачу.
+
+        Фильтрация и сортировка выполняются до пагинации. Размер страницы — 12.
+        Счётчик в HTML относится ко всей выборке. Сортировки разрешают равенство
+        основного ключа по UUID; для участников дополнительно используется дата.
+        Форма не содержит поля page: изменение условий начинает с первой страницы.
+        Ссылки страниц и сброса сохраняются в URL и поддерживают Back/Forward.
+
+        Ответ 400 содержит форму с сохранённым вводом и ошибками, без карточек.
+        Клиент каталога разрешает HTMX-замену для 400. При обрыве сети и 5xx
+        предыдущие карточки остаются, показываются сообщение и повтор. Обработчик
+        htmx:timeout есть, но конечный таймаут в текущей конфигурации не задан;
+        подробности — в QA-отчёте. Спецификация не объявляет таймаут готовым.
+
+        Альтернативные методы: CSRF middleware выполняется до проверки метода.
+        POST/PUT/PATCH/DELETE без валидного CSRF дают 403. После успешной
+        CSRF-проверки обработчик отвечает 405; для PUT/PATCH/DELETE токен нужно
+        передать заголовком X-CSRFToken, поскольку request.POST их не разбирает.
+        HEAD и OPTIONS дают 405 с `Allow: GET`. Эти ответы описаны ниже для
+        полноты HTTP-поведения пути; отдельной операции изменения каталога нет.
+      parameters:
+        - $ref: '#/components/parameters/SearchText'
+        - $ref: '#/components/parameters/Direction'
+        - $ref: '#/components/parameters/Role'
+        - $ref: '#/components/parameters/OpenOnly'
+        - $ref: '#/components/parameters/Sort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/HxRequest'
+        - $ref: '#/components/parameters/HxHistoryRestore'
+      responses:
+        '200':
+          description: |
+            Полная страница или HTMX-фрагмент, включая успешную пустую выдачу.
+            Без HX-Request либо при восстановлении истории возвращается
+            `projects/catalog.html`; обычный HTMX-запрос —
+            `projects/partials/catalog_content.html` с корнем section#catalog-content.
+          headers:
+            Vary:
+              $ref: '#/components/headers/Vary'
+          content:
+            text/html; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/HtmlDocument'
+              examples:
+                fullPage:
+                  summary: Сокращённый пример полной страницы
+                  value: |
+                    <!doctype html>
+                    <html lang="ru"><head><title>StudyMate — Каталог проектов</title></head>
+                    <body><section id="catalog-content">
+                    <form id="catalog-filter-form" method="get" action="/projects/">
+                    <input name="q" value="Python"><button type="submit">Найти</button>
+                    </form><h2>Найдено проектов: 1</h2>
+                    <article class="catalog-card"><h3>Python Lab</h3>
+                    <p>Ищем: Backend — свободных мест: 1</p><span>Набор открыт</span>
+                    </article></section></body></html>
+                htmxFragment:
+                  summary: Сокращённый пример ответа на HX-Request:true
+                  value: |
+                    <section id="catalog-content" class="catalog-content" aria-label="Каталог проектов">
+                    <form id="catalog-filter-form" method="get" action="/projects/"
+                      hx-get="/projects/" hx-target="#catalog-content" hx-swap="outerHTML">
+                    <input name="q" value="Python"><button type="submit">Найти</button>
+                    </form><h2>Найдено проектов: 1</h2>
+                    <article class="catalog-card"><h3>Python Lab</h3></article></section>
+                empty:
+                  summary: Сокращённый пример пустой выдачи, не ошибки сервера
+                  value: |
+                    <section id="catalog-content"><h2>Найдено проектов: 0</h2>
+                    <div class="catalog-empty" role="status"><h3>Проекты не найдены</h3>
+                    <p>По вашему запросу проекты не найдены. Попробуйте другую роль, направление или запрос.</p>
+                    </div><a href="/projects/">Сбросить фильтры</a></section>
+        '400':
+          description: |
+            Ошибка известного query-параметра. Представление выбирается по
+            HTMX-заголовкам так же, как для 200. Успешные карточки не возвращаются.
+            Ошибки Sort/Page показываются рядом с сортировкой; остальные — у поля.
+          headers:
+            Vary:
+              $ref: '#/components/headers/Vary'
+          content:
+            text/html; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/HtmlDocument'
+              examples:
+                openOnly:
+                  summary: open_only=maybe или пустое значение; фрагмент сокращён
+                  value: |
+                    <section id="catalog-content"><form id="catalog-filter-form">
+                    <p role="alert" data-field="open_only">Укажите open_only=true или open_only=false.</p>
+                    <h2>Проверьте условия поиска</h2></form></section>
+                queryLength:
+                  summary: q длиннее 200 символов после strip(); фрагмент сокращён
+                  value: |
+                    <section id="catalog-content"><form id="catalog-filter-form">
+                    <p role="alert" data-field="q">Введите не более 200 символов</p>
+                    </form></section>
+                duplicate:
+                  summary: Повтор известного параметра; фрагмент сокращён
+                  value: |
+                    <section id="catalog-content"><form id="catalog-filter-form">
+                    <p role="alert" data-field="q">Передайте параметр один раз</p>
+                    </form></section>
+                direction:
+                  summary: Некорректный формат slug; фрагмент сокращён
+                  value: |
+                    <section id="catalog-content"><form id="catalog-filter-form">
+                    <p role="alert" data-field="direction">Некорректный формат направления</p>
+                    </form></section>
+        '403':
+          description: |
+            Небезопасный метод отклонён CSRF middleware до обработчика каталога.
+            На GET каталога CSRF не требуется. HTML страницы ошибки зависит от
+            настроек Django; содержимое не является JSON-ответом API.
+          content:
+            text/html; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/HtmlDocument'
+        '405':
+          description: |
+            Метод не поддерживается: HEAD/OPTIONS либо небезопасный метод,
+            прошедший CSRF-проверку. Поиск и изменение данных не выполняются.
+          headers:
+            Allow:
+              description: Разрешённые обработчиком методы.
+              schema:
+                type: string
+                const: GET
+          content:
+            text/html; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/HtmlDocument'
+        '500':
+          description: |
+            Непредвиденная ошибка сервера/БД. При DEBUG=false — общая HTML-страница
+            ошибки; при DEBUG=true Django может вернуть диагностический HTML.
+            Это не пустая выдача. HTMX-клиент сохраняет предыдущие карточки и
+            предлагает повтор. Схема внутреннего содержимого не стабилизируется.
+          content:
+            text/html; charset=utf-8:
+              schema:
+                $ref: '#/components/schemas/HtmlDocument'
+      x-django-template-context:
+        note: Описание серверного контекста, НЕ JSON-схема HTTP-ответа.
+        projects: Объект Page, максимум 12 проектов текущей страницы.
+        page_obj: Тот же объект Page; number и paginator.num_pages используются в HTML.
+        project_count: Число совпадений после фильтров, до пагинации.
+        categories: 'Category: UUID id, name, slug; порядок name, pk.'
+        role_names: Названия ролей из БД без повторов регистра.
+        filter_form: Django CatalogFilterForm.
+        filter_errors: Ошибки по имени поля; это не JSON тела ответа.
+        search_query: Нормализованный q либо сохранённый ошибочный ввод.
+        selected_direction: Выбранный slug либо сохранённый ошибочный ввод.
+        selected_role: Выбранное название роли либо сохранённый ошибочный ввод.
+        unknown_direction: Признак отсутствующего в справочнике направления.
+        unknown_role: Признак отсутствующего названия роли.
+        sort: Одна из четырёх сортировок после нормализации.
+        open_only: Вычисленное boolean-состояние фильтра.
+        has_filters: Непустой request.GET, используется для пустого состояния.
+        project_card: |
+          id UUID, title, description, status, category{id,name,slug},
+          author{id,get_full_name}, member_count по ProjectMember,
+          catalog_roles{id,name,capacity,occupied_places,free_places,is_open}.
+          Prefetch содержит роли с is_open=true; recruitment_open дополнительно
+          учитывает статус проекта и свободное место. Это поля шаблона, не JSON.
+components:
+  parameters:
+    SearchText:
+      name: q
+      in: query
+      required: false
+      description: |
+        Подстрока в названии или описании. После удаления крайних пробелов —
+        не более 200 символов Python; пустая строка отключает текстовое условие.
+        Один символ допустим. Внутренние пробелы сохраняются. Ограничение длины
+        применяется после strip(), поэтому raw maxLength в схеме не задан.
+      schema:
+        type: string
+        default: ''
+        examples: [Python, чат, робот, '']
+      x-normalized-max-length: 200
+    Direction:
+      name: direction
+      in: query
+      required: false
+      description: |
+        Одиночный Category.slug, максимум 100 символов после нормализации.
+        Формат проверяет Django SlugField(allow_unicode=True): Unicode-буквы,
+        цифры, дефис и подчёркивание. Пустое значение — все направления.
+        Начальные development/design/science зависят от данных, не зафиксированы
+        как единственный допустимый справочник. Неизвестный корректный slug — 200/0.
+      schema:
+        type: string
+        default: ''
+        examples: [development, design, science, '']
+      x-normalized-max-length: 100
+    Role:
+      name: role
+      in: query
+      required: false
+      description: |
+        Одно название существующей роли, максимум 100 символов после удаления
+        крайних пробелов. Точное сравнение без учёта регистра, не поиск подстроки.
+        Пустое значение — любая роль. Синонимы не объединяются. Отсутствующее
+        корректное название — 200/0. При open_only=true проверяется место той же роли.
+      schema:
+        type: string
+        default: ''
+        examples: [Backend, Python-разработчик, '']
+      x-normalized-max-length: 100
+    OpenOnly:
+      name: open_only
+      in: query
+      required: false
+      style: form
+      explode: true
+      description: |
+        Отсутствие параметра означает true. Явно допустимы только строчные
+        литералы true/false. Пустое значение, 1/0, True/False и другие строки — 400.
+        Значение true требует открытого проекта и открытой роли со свободным местом.
+      schema:
+        type: boolean
+        enum: [true, false]
+        default: true
+    Sort:
+      name: sort
+      in: query
+      required: false
+      description: |
+        newest: -created_at,pk; oldest: created_at,pk;
+        members: -member_count,-created_at,pk;
+        fewer_members: member_count,-created_at,pk.
+        Неизвестное или пустое значение нормально заменяется на newest, не 400.
+        Повтор параметра, включая одинаковые значения, даёт 400.
+      schema:
+        type: string
+        default: newest
+        examples: [newest, oldest, members, fewer_members]
+    Page:
+      name: page
+      in: query
+      required: false
+      description: |
+        Номер страницы, размер фиксирован — 12. Канонический тип — integer.
+        Существующий Paginator.get_page допускает восстановление: пустое/нечисловое —
+        первая страница; ноль, отрицательное или больше последней — последняя.
+        Повтор page даёт 400. При ошибке другого фильтра карточки не выдаются.
+      schema:
+        type: integer
+        default: 1
+        examples: [1, 2]
+    HxRequest:
+      name: HX-Request
+      in: header
+      required: false
+      description: |
+        Только точное значение true включает фрагмент. Отсутствие/другое значение —
+        полная страница. При одновременном HX-History-Restore-Request:true
+        возвращается полная страница независимо от порядка заголовков.
+      schema:
+        type: string
+        examples: ['true']
+    HxHistoryRestore:
+      name: HX-History-Restore-Request
+      in: header
+      required: false
+      description: |
+        Точное true запрашивает полную страницу для восстановления истории HTMX.
+        Отсутствие/другое значение не включает этот режим.
+      schema:
+        type: string
+        examples: ['true']
+  headers:
+    Vary:
+      description: |
+        Содержит HX-Request и HX-History-Restore-Request на ответах обработчика.
+        Middleware сессии может добавить Cookie. Не считайте значение точным списком.
+      schema:
+        type: string
+      example: HX-Request, HX-History-Restore-Request, Cookie
+  schemas:
+    HtmlDocument:
+      type: string
+      description: |
+        UTF-8 HTML: полная страница, section#catalog-content либо страница ошибки.
+        choice зависит от запроса/статуса. JSON-схемы items/total/results нет.
+        Пользовательский текст экранируется Django templates.
