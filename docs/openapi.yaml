@@ -1,0 +1,397 @@
+openapi: 3.0.3
+info:
+  title: StudyMate — каталог и подача заявки
+  version: 1.0.0
+  description: |
+    HTTP-контракт двух операций на основе US-04 и US-05 в docs/contracts.md,
+    сверенный с текущими Django views, forms, services и шаблонами.
+    Сервер возвращает HTML в UTF-8; данные контекста Django не являются JSON API.
+    HTML-примеры ниже сокращены и показывают смысл ответа, а не полную разметку.
+
+    Дополнение к таблице US-04: реализованный одиночный фильтр role описан
+    в docs/009-project-search.md. Исторические планы изменений в contracts.md
+    не означают, что эти изменения ещё отсутствуют в текущем коде.
+
+    Для подачи заявки требуется стандартная сессия Django и CSRF-проверка.
+    Сначала войдите через /accounts/login/ и получите актуальный CSRF-токен
+    из формы /projects/{id}/apply/. Токен после входа меняется.
+    В браузере cookies отправляются автоматически для того же origin;
+    Swagger UI ограничен браузерными правилами Cookie, а сам YAML не создаёт
+    страницу Swagger и не добавляет новые маршруты приложения.
+servers:
+  - url: http://localhost:8000
+    description: Локальный Docker Compose; при другом WEB_PORT измените адрес.
+tags:
+  - name: projects
+    description: Каталог проектов
+  - name: applications
+    description: Подача заявки на роль
+paths:
+  /projects/:
+    get:
+      tags: [projects]
+      operationId: listProjects
+      summary: Получить каталог проектов
+      description: |
+        Обычный GET возвращает projects/catalog.html. При HX-Request=true
+        возвращается projects/partials/catalog_content.html с корневым
+        section#catalog-content; замена — outerHTML. HX-History-Restore-Request=true
+        имеет приоритет и возвращает полную страницу.
+
+        Все query-параметры одиночные. Повтор любого известного параметра,
+        даже с тем же значением, даёт 400. Неизвестные параметры игнорируются;
+        categories, roles, difficulty, search и status не являются алиасами.
+        Условия поиска и фильтров действуют совместно, до сортировки и пагинации.
+        CSRF не требуется; GET не меняет данные.
+
+        Нулевая выдача — 200, project_count=0, страница 1 из 1. Ошибка БД — 500,
+        а не пустая выдача. При сетевой ошибке HTTP-ответ отсутствует.
+        При сбое или 500 HTMX-клиент сохраняет предыдущие карточки и предлагает повтор.
+      security: []
+      parameters:
+        - name: q
+          in: query
+          description: |
+            Подстрока в названии или описании без учёта регистра.
+            strip() удаляет пробелы по краям до проверки длины; внутренние пробелы
+            сохраняются. Пустая строка отключает текстовый поиск. Символы % и _
+            обрабатываются буквально. Морфология и исправление опечаток отсутствуют.
+          schema:
+            type: string
+            maxLength: 200
+            default: ''
+          example: Python
+        - name: open_only
+          in: query
+          description: |
+            В URL допустимы только литералы true и false (регистр важен).
+            Пустое или другое значение даёт 400. Отсутствие параметра означает true.
+            true — статус проекта open и хотя бы одна роль с is_open=true
+            и capacity > occupied_places. Занятость считается по ProjectMember;
+            pending-заявки место не занимают. false снимает ограничение по набору
+            и статусу проекта, сохраняя остальные фильтры.
+          schema:
+            type: boolean
+            default: true
+        - name: direction
+          in: query
+          description: |
+            Один Category.slug: Unicode-буквы, цифры, дефис и подчёркивание.
+            Пробелы по краям удаляются. Пустая строка означает все направления.
+            Неизвестный slug корректного формата даёт пустую выдачу с 200;
+            неверный формат или превышение длины — 400.
+          schema:
+            type: string
+            maxLength: 100
+            default: ''
+          example: science
+        - name: role
+          in: query
+          description: |
+            Одно название ProjectRole, точное сравнение без учёта регистра;
+            пробелы по краям удаляются. Пустая строка не ограничивает роль.
+            Неизвестное название даёт пустую выдачу с 200, превышение длины — 400.
+            При open_only=true название, открытость и свободное место проверяются
+            у одной и той же роли. Параметр реализован в дополнение к таблице US-04.
+          schema:
+            type: string
+            maxLength: 100
+            default: ''
+          example: Backend-разработчик
+        - name: sort
+          in: query
+          description: |
+            newest — сначала новые; oldest — сначала старые; members — сначала
+            больше участников; fewer_members — сначала меньше участников.
+            Число участников — записи ProjectMember, без отдельного учёта автора.
+            При равенстве числа участников сначала новые; окончательный порядок
+            стабилизируется по UUID. Пустое или неизвестное значение заменяется
+            на newest и не вызывает 400.
+          schema:
+            type: string
+            enum: [newest, oldest, members, fewer_members]
+            default: newest
+        - name: page
+          in: query
+          description: |
+            Номер страницы; размер фиксирован — 12 проектов.
+            Пустое или нечисловое значение даёт первую страницу; 0, отрицательное
+            или число больше последней страницы — последнюю. При смене условий
+            клиент убирает page, при переходе между страницами сохраняет фильтры.
+          schema:
+            type: integer
+            default: 1
+          example: 2
+        - $ref: '#/components/parameters/HxRequest'
+        - name: HX-History-Restore-Request
+          in: header
+          description: Значение true требует полную страницу даже с HX-Request=true.
+          schema:
+            type: string
+            enum: ['true', 'false']
+      responses:
+        '200':
+          description: Полная HTML-страница или HTMX-фрагмент, включая пустую выдачу.
+          headers:
+            Vary:
+              description: Содержит HX-Request и HX-History-Restore-Request; возможны другие значения.
+              schema:
+                type: string
+              example: HX-Request, HX-History-Restore-Request
+          content:
+            text/html:
+              schema:
+                type: string
+              examples:
+                fragment:
+                  summary: Сокращённый фрагмент с проектом
+                  value: |
+                    <section id="catalog-content">
+                      <a href="/projects/34ddac3b-c44b-46ee-9a9e-fb366557086a/">Python Lab</a>
+                    </section>
+                empty:
+                  summary: Сокращённый фрагмент пустой выдачи
+                  value: |
+                    <section id="catalog-content">
+                      <p>Проекты с такими параметрами не найдены</p>
+                      <a href="/projects/">Сбросить фильтры</a>
+                    </section>
+        '400':
+          description: |
+            Ошибка длины q, direction или role, формата direction, значения
+            open_only либо повтор известного параметра. Возвращается HTML
+            с ошибками и сохранённым вводом; список не выдаётся как успешный результат.
+            Полная страница или фрагмент выбирается теми же HTMX-заголовками.
+          headers:
+            Vary:
+              description: Содержит HX-Request и HX-History-Restore-Request.
+              schema:
+                type: string
+          content:
+            text/html:
+              schema:
+                type: string
+              example: |
+                <section id="catalog-content">
+                  <p role="alert">Укажите open_only=true или open_only=false.</p>
+                </section>
+        '405':
+          description: Метод не поддерживается. Каталог принимает только GET.
+          headers:
+            Allow:
+              schema:
+                type: string
+              example: GET
+        '500':
+          $ref: '#/components/responses/ServerError'
+      x-template-context:
+        description: Внутренний контекст Django templates; не JSON-схема HTTP-ответа.
+        fields:
+          projects: Объект Page, максимум 12 проектов на странице.
+          page_obj: Тот же объект Page с номером и общим числом страниц.
+          project_count: Число проектов после фильтров, до пагинации.
+          categories: Направления с UUID id, name и slug.
+          role_names: Названия ролей из БД без повторов регистра.
+          selection: search_query, selected_direction, selected_role, sort и open_only.
+          filter_errors: Ошибки формы по именам параметров.
+          project_fields: id, title, description, status, category, author, member_count, catalog_roles.
+  /projects/{id}/apply/:
+    post:
+      tags: [applications]
+      operationId: submitApplication
+      summary: Подать заявку на роль проекта
+      description: |
+        Создаёт Application со статусом pending; пользователь берётся из сессии,
+        проект — из URL. projectRoleId должен указывать на доступную роль этого
+        проекта: проект open, роль is_open=true, есть свободное место.
+        Автор проекта, действующий участник и пользователь с pending-заявкой
+        на этот проект не могут подать заявку. Pending не занимает место.
+        Проверки повторяются в транзакции; БД защищает от активного дубля.
+
+        Тело — обычная HTML-форма, не JSON. Нужны cookie sessionid и csrftoken,
+        а также соответствующий CSRF-токен в csrfmiddlewaretoken или X-CSRFToken.
+        Для HTTPS дополнительно действуют стандартные проверки Origin/Referer Django.
+
+        Обычный успешный POST возвращает 302 на /applications/.
+        HTMX-успех возвращает 200 с applications/partials/sent.html.
+        Ошибки полей и бизнес-правил также возвращают 200 с формой либо
+        состоянием недоступного отклика. Для них 400/409 не используются.
+        При отсутствии сессии обычный запрос перенаправляется на вход, а HTMX
+        получает 200 с HX-Redirect и пустым телом; это не успешная подача.
+        CSRF middleware может вернуть 403 раньше проверки сессии.
+      security:
+        - DjangoSession: []
+          CsrfCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID проекта (project_id в Django URLconf).
+          schema:
+            type: string
+            format: uuid
+          example: 34ddac3b-c44b-46ee-9a9e-fb366557086a
+        - $ref: '#/components/parameters/HxRequest'
+        - name: X-CSRFToken
+          in: header
+          description: CSRF-токен из формы; обязателен, если не передан csrfmiddlewaretoken.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ApplicationForm'
+            example:
+              projectRoleId: a7d9d586-33ee-4269-a4f0-e2f4f3c3e50a
+              comment: Пишу на Django и хочу присоединиться к команде.
+              csrfmiddlewaretoken: TOKEN_FROM_RENDERED_FORM
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ApplicationForm'
+      responses:
+        '200':
+          description: |
+            HTMX-успех с сохранённой заявкой; либо ошибка формы/бизнес-правил
+            для обычного запроса или HTMX; либо истёкшая сессия HTMX с HX-Redirect.
+            Ошибки включают отсутствие или недоступность выбранной роли, письмо
+            длиннее 300 символов, закрытый проект, отсутствие мест, активный дубль,
+            собственный проект и действующее членство.
+            Роль другого проекта не проходит проверку доступных вариантов формы.
+            Нельзя определять успех только по HTTP 200.
+          headers:
+            Vary:
+              description: Для ответов обработчика содержит HX-Request; возможны другие значения.
+              schema:
+                type: string
+            HX-Retarget:
+              description: При HTMX-ответе с результатом или формой; отсутствует у редиректа на вход.
+              schema:
+                type: string
+                enum: ['#application-form']
+            HX-Reswap:
+              description: При HTMX-ответе с результатом или формой.
+              schema:
+                type: string
+                enum: [outerHTML]
+            HX-Redirect:
+              description: |
+                Только при отсутствии валидной сессии у HTMX-запроса.
+                Адрес входа с next, ведущим к исходному URL подачи.
+              schema:
+                type: string
+              example: /accounts/login/?next=/projects/34ddac3b-c44b-46ee-9a9e-fb366557086a/apply/
+          content:
+            text/html:
+              schema:
+                type: string
+              examples:
+                sent:
+                  summary: HTMX-успех, сокращённая разметка из сохранённой заявки
+                  value: |
+                    <section id="application-form" aria-live="polite">
+                      <h2>Заявка отправлена</h2>
+                      <p>Python Lab · Backend-разработчик</p>
+                      <span>На рассмотрении</span>
+                      <a href="/applications/">Перейти к заявкам</a>
+                    </section>
+                unavailable:
+                  summary: Активный дубль, новая запись не создаётся
+                  value: |
+                    <section id="application-form" aria-live="polite">
+                      <h2>Заявка уже отправлена</h2>
+                      <a href="/applications/">Посмотреть заявку</a>
+                    </section>
+                invalidRole:
+                  summary: Ошибка выбора роли, сокращённый фрагмент формы
+                  value: |
+                    <section id="application-form" aria-live="polite">
+                      <p role="alert">Выберите доступную роль этого проекта.</p>
+                    </section>
+                expiredSession:
+                  summary: Пустое тело; адрес входа передан в HX-Redirect
+                  value: ''
+        '302':
+          description: |
+            Обычный успешный POST — на /applications/.
+            Без валидной сессии — на /accounts/login/?next=... (при пройденной
+            CSRF-проверке). Для различения проверьте Location.
+          headers:
+            Location:
+              description: Адрес списка заявок или страницы входа.
+              schema:
+                type: string
+              example: /applications/
+        '403':
+          description: |
+            Стандартная HTML-страница Django при ошибке CSRF: отсутствуют или
+            не совпадают cookie/токен, не пройдены проверки Origin/Referer.
+            Заявка не создаётся; HTMX-фрагмент формы не возвращается.
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: |
+            Проект не найден (в том числе удалён между проверками) либо URL
+            не соответствует UUID-маршруту. HTML-страница ошибки, не фрагмент формы.
+          content:
+            text/html:
+              schema:
+                type: string
+        '405':
+          description: |
+            Метод не поддерживается. У этого URL также есть GET формы,
+            который не входит в область данной спецификации.
+          headers:
+            Allow:
+              schema:
+                type: string
+              example: GET, POST
+        '500':
+          $ref: '#/components/responses/ServerError'
+components:
+  parameters:
+    HxRequest:
+      name: HX-Request
+      in: header
+      description: Только строка true включает HTMX-ответ; без заголовка используется обычный запрос.
+      schema:
+        type: string
+        enum: ['true', 'false']
+  schemas:
+    ApplicationForm:
+      type: object
+      required: [projectRoleId]
+      properties:
+        projectRoleId:
+          type: string
+          format: uuid
+          description: UUID доступной роли указанного в URL проекта. Имя поля регистрозависимо.
+        comment:
+          type: string
+          maxLength: 300
+          default: ''
+          description: Необязательное письмо; пробелы сохраняются и учитываются в длине.
+        csrfmiddlewaretoken:
+          type: string
+          description: CSRF-токен из формы; обязателен при отсутствии X-CSRFToken.
+  securitySchemes:
+    DjangoSession:
+      type: apiKey
+      in: cookie
+      name: sessionid
+      description: Стандартная сессия Django после входа; JWT и Bearer-токен не используются.
+    CsrfCookie:
+      type: apiKey
+      in: cookie
+      name: csrftoken
+      description: Cookie Django CSRF; дополнительно нужен токен в теле формы или X-CSRFToken.
+  responses:
+    ServerError:
+      description: Непредвиденная серверная ошибка, включая недоступность БД; HTML-страница ошибки.
+      content:
+        text/html:
+          schema:
+            type: string
