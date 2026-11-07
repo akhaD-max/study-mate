@@ -82,6 +82,10 @@ def catalog(request):
         "categories": categories,
         "role_names": role_names,
         "selected_direction": selected_direction,
+        "selected_direction_name": next(
+            (category.name for category in categories if category.slug == selected_direction),
+            selected_direction,
+        ),
         "selected_role": selected_role,
         "unknown_direction": selected_direction and not any(
             category.slug == selected_direction for category in categories

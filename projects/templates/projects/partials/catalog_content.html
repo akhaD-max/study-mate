@@ -1,3 +1,4 @@
+{% load static %}
 <section id="catalog-content" class="catalog-content" aria-label="Каталог проектов">
     {% comment %}Одна GET-форма объединяет поиск, фильтры и сортировку.
     Поля page здесь нет: изменение условий начинает выдачу с первой страницы.{% endcomment %}
@@ -12,6 +13,24 @@
                 <a class="catalog-create" href="{% url 'projects:create' %}">Создать проект</a>
             </div>
             {% for error in filter_errors.q %}<p class="catalog-field-error" id="error-q" role="alert" data-field="q">{{ error }}</p>{% endfor %}
+            {% if search_query or selected_direction or selected_role or open_only %}
+            <nav class="catalog-active-filters" aria-label="Активные фильтры" hx-boost="true"
+                 hx-target="#catalog-content" hx-swap="outerHTML" hx-push-url="true">
+            {% if search_query %}
+                <a class="catalog-active-chip" href="{% url 'projects:catalog' %}{% querystring q=None page=None %}" aria-label="Убрать поиск">{{ search_query|truncatechars:48 }} <span aria-hidden="true">×</span></a>
+            {% endif %}
+            {% if selected_direction %}
+                <a class="catalog-active-chip" href="{% url 'projects:catalog' %}{% querystring direction=None page=None %}" aria-label="Убрать направление">{{ selected_direction_name }} <span aria-hidden="true">×</span></a>
+            {% endif %}
+            {% if selected_role %}
+                <a class="catalog-active-chip" href="{% url 'projects:catalog' %}{% querystring role=None page=None %}" aria-label="Убрать роль">{{ selected_role|truncatechars:40 }} <span aria-hidden="true">×</span></a>
+            {% endif %}
+            {% if open_only %}
+                <a class="catalog-active-chip" href="{% url 'projects:catalog' %}{% querystring open_only='false' page=None %}" aria-label="Убрать открытый набор">Набор открыт <span aria-hidden="true">×</span></a>
+            {% endif %}
+                <a class="catalog-active-chip catalog-active-chip-reset" href="{% url 'projects:catalog' %}">Сбросить всё</a>
+            </nav>
+            {% endif %}
         </div>
         <div class="catalog-layout">
             <aside class="catalog-filter-panel" aria-labelledby="filters-title">
@@ -69,7 +88,7 @@
                     <div class="catalog-grid">
                         {% for project in projects %}
                             <article class="catalog-card">
-                                <div class="catalog-card-icon" aria-hidden="true">▱</div>
+                                <div class="catalog-card-icon" aria-hidden="true"><img src="{% static 'catalog/project.svg' %}" alt=""></div>
                                 <div class="catalog-card-copy">
                                     <h3><a href="{% url 'projects:detail' project.id %}">{{ project.title }}</a></h3>
                                     <p class="catalog-card-description">{{ project.description|default:'Описание пока не добавлено.'|truncatechars:160 }}</p>
@@ -78,7 +97,7 @@
                                 </div>
                                 <div class="catalog-card-actions">
                                     {% if project.recruitment_open %}<span class="catalog-badge">Набор открыт</span>{% else %}<span class="catalog-badge catalog-badge-closed">Набор закрыт</span>{% endif %}
-                                    <a href="{% url 'projects:detail' project.id %}">Подробнее <span aria-hidden="true">→</span></a>
+                                    <a href="{% url 'projects:detail' project.id %}">Подробнее <img src="{% static 'catalog/arrow.svg' %}" alt=""></a>
                                 </div>
                             </article>
                         {% endfor %}
