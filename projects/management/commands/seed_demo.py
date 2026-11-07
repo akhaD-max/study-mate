@@ -31,6 +31,98 @@ DEMO_CATEGORIES = (
     {"slug": "design", "name": "Дизайн"},
 )
 
+SEARCH_PROJECTS = (
+    {
+        "title": "Python Lab — анализ учебных данных",
+        "description": "Исследуем успеваемость студентов и строим отчёты на Python.",
+        "category": "development",
+        "roles": (("Backend-разработчик", 2, True),),
+    },
+    {
+        "title": "Исследование интерфейсов кампуса",
+        "description": "Проверяем прототип Python Lab через интервью и пользовательские сценарии.",
+        "category": "design",
+        "roles": (("UX-исследователь", 2, True),),
+    },
+    {
+        "title": "Робот помощник в лаборатории",
+        "description": "Исследуем навигацию робота и обработку показаний датчиков.",
+        "category": "science",
+        "roles": (("Исследователь", 2, True),),
+    },
+    {
+        "title": "Python — сервис обмена учебниками",
+        "description": "Каталог книг и обмен между студентами. Нужен разработчик интерфейса.",
+        "category": "development",
+        "roles": (
+            ("Backend-разработчик", 1, True),
+            ("Frontend-разработчик", 2, True),
+        ),
+        "occupied_role": "Backend-разработчик",
+    },
+    {
+        "title": "Python — планировщик командных встреч",
+        "description": "Подбираем время встреч. Backend-набор закрыт, ищем тестировщика.",
+        "category": "development",
+        "roles": (
+            ("Backend-разработчик", 2, False),
+            ("QA-инженер", 2, True),
+        ),
+    },
+    {
+        "title": "Чат-бот для первокурсников",
+        "description": "Ответы на вопросы о кампусе, расписании и студенческих сервисах.",
+        "category": "development",
+        "roles": (("Backend-разработчик", 2, True),),
+    },
+    {
+        "title": "Карта доступной среды кампуса",
+        "description": "Интерактивная карта входов, лифтов и доступных маршрутов.",
+        "category": "design",
+        "roles": (("Продуктовый дизайнер", 2, True),),
+    },
+    {
+        "title": "Мониторинг качества воздуха",
+        "description": "Анализируем датчики в аудиториях. Сервис сбора данных пишем на Python.",
+        "category": "science",
+        "roles": (("Backend-разработчик", 2, True),),
+    },
+    {
+        "title": "Мобильный гид по университету",
+        "description": "Навигация для новых студентов и поиск нужной аудитории.",
+        "category": "design",
+        "roles": (("UI/UX дизайнер", 2, True),),
+    },
+    {
+        "title": "Открытая библиотека научных экспериментов",
+        "description": "Собираем воспроизводимые опыты и публикуем результаты измерений.",
+        "category": "science",
+        "roles": (("Исследователь", 2, True),),
+    },
+)
+
+
+def _ensure_search_projects(*, author, categories, member):
+    for sample in SEARCH_PROJECTS:
+        project, created = Project.objects.get_or_create(
+            author=author,
+            title=sample["title"],
+            defaults={
+                "description": sample["description"],
+                "category": categories[sample["category"]],
+                "status": Project.Status.OPEN,
+            },
+        )
+        # Существующие карточки и состав команды могли изменить при ручной проверке.
+        if not created:
+            continue
+        for name, capacity, is_open in sample["roles"]:
+            role = ProjectRole.objects.create(
+                project=project, name=name, capacity=capacity, is_open=is_open,
+            )
+            if name == sample.get("occupied_role"):
+                ProjectMember.objects.create(project=project, role=role, user=member)
+
 
 def _resolve_password(cli_password: str | None) -> str:
     raw = cli_password
@@ -98,7 +190,7 @@ def _ensure_sample_application(
 
 class Command(BaseCommand):
     help = (
-        "Создаёт идемпотентные демонстрационные данные для сценария 4-го спринта "
+        "Создаёт демонстрационные данные для поиска, пагинации и подачи заявок "
         "(пользователи, направления, проекты, роли, членство и образцы заявок)."
     )
 
@@ -301,6 +393,8 @@ class Command(BaseCommand):
             status=Application.Status.PENDING,
             comment="Могу помочь с компонентной библиотекой.",
         )
+
+        _ensure_search_projects(author=author, categories=categories, member=student_two)
 
         self.stdout.write(
             self.style.SUCCESS(

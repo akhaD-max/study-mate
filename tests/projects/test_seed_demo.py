@@ -7,6 +7,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+from django.urls import reverse
 
 from applications.models import Application
 from projects.management.commands.seed_demo import (
@@ -14,6 +15,7 @@ from projects.management.commands.seed_demo import (
     DEMO_STUDENTS,
 )
 from projects.models import Category, Project, ProjectMember, ProjectRole
+from projects.selectors import catalog_projects
 
 User = get_user_model()
 
@@ -52,7 +54,7 @@ class SeedDemoCommandTests(TestCase):
                 account,
             )
 
-        self.assertGreaterEqual(Project.objects.count(), 3)
+        self.assertEqual(Project.objects.count(), 14)
 
         main_project = Project.objects.get(title="Платформа учебных команд StudyMate")
         free_role = main_project.roles.get(name="Backend-разработчик")
@@ -242,3 +244,76 @@ class SeedDemoCommandTests(TestCase):
                 "projects/migrations/0001_initial.py",
             ],
         )
+
+    def test_search_data_covers_description_filters_occupancy_and_pagination(self):
+        call_command("seed_demo", password=DEMO_PASS, stdout=StringIO())
+        self.assertEqual(catalog_projects().count(), 13)
+
+        python_projects = {
+            "Python Lab — анализ учебных данных",
+            "Исследование интерфейсов кампуса",
+            "Python — сервис обмена учебниками",
+            "Python — планировщик командных встреч",
+            "Мониторинг качества воздуха",
+        }
+        for query in ("Python", "python", " Python "):
+            response = self.client.get(reverse("projects:catalog"), {"q": query})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(
+                {project.title for project in response.context["projects"]},
+                python_projects,
+            )
+        cases = (
+            ({"q": "Python", "direction": "design"}, {"Исследование интерфейсов кампуса"}),
+            ({"q": "Python", "role": "BACKEND-РАЗРАБОТЧИК"}, {
+                "Python Lab — анализ учебных данных", "Мониторинг качества воздуха",
+            }),
+            ({"q": "Python", "role": "Backend-разработчик", "open_only": "false"}, {
+                "Python Lab — анализ учебных данных", "Мониторинг качества воздуха",
+                "Python — сервис обмена учебниками", "Python — планировщик командных встреч",
+            }),
+            ({"q": "РОБОТ"}, {"Робот помощник в лаборатории"}),
+            ({"q": "чат"}, {"Чат-бот для первокурсников"}),
+            ({"q": "Аналитика"}, set()),
+            ({"q": "Аналитика", "open_only": "false"}, {
+                "Аналитика вовлечённости онлайн-курсов",
+            }),
+            ({"q": "несуществующий-проект-8472"}, set()),
+        )
+        for params, expected in cases:
+            with self.subTest(params=params):
+                response = self.client.get(reverse("projects:catalog"), params)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    {project.title for project in response.context["projects"]}, expected,
+                )
+        first = self.client.get(reverse("projects:catalog"))
+        second = self.client.get(reverse("projects:catalog"), {"page": 2})
+        self.assertEqual(first.context["project_count"], 13)
+        self.assertEqual(first.context["page_obj"].paginator.num_pages, 2)
+        first_ids = {project.pk for project in first.context["projects"]}
+        second_ids = {project.pk for project in second.context["projects"]}
+        self.assertEqual(len(first_ids), 12)
+        self.assertEqual(len(second_ids), 1)
+        self.assertFalse(first_ids & second_ids)
+
+    def test_rerun_preserves_edited_search_project_and_team(self):
+        call_command("seed_demo", password=DEMO_PASS, stdout=StringIO())
+        project = Project.objects.get(title="Python — сервис обмена учебниками")
+        project.description = "Описание после ручного редактирования"
+        project.status = Project.Status.COMPLETED
+        project.save()
+        role = project.roles.get(name="Backend-разработчик")
+        role.is_open = False
+        role.save()
+        project.memberships.all().delete()
+
+        call_command("seed_demo", password=DEMO_PASS, stdout=StringIO())
+
+        project.refresh_from_db()
+        role.refresh_from_db()
+        self.assertEqual(Project.objects.count(), 14)
+        self.assertEqual(project.description, "Описание после ручного редактирования")
+        self.assertEqual(project.status, Project.Status.COMPLETED)
+        self.assertFalse(role.is_open)
+        self.assertFalse(project.memberships.exists())

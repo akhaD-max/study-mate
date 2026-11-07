@@ -17,7 +17,9 @@
         </section>
         <div id="catalog-request-error" class="catalog-request-error" role="alert" hidden>
             <p>Не удалось загрузить проекты. Предыдущая выдача не обновлена.</p>
-            <button type="submit" form="catalog-filter-form">Повторить попытку</button>
+            <button id="catalog-retry" type="button" hx-push-url="true"
+                    hx-sync="#catalog-filter-form:replace" hx-indicator="#catalog-loading"
+                    hx-disabled-elt="this">Повторить попытку</button>
         </div>
         {% include "projects/partials/catalog_content.html" %}
     </main>
