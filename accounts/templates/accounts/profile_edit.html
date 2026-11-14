@@ -1,0 +1,42 @@
+{% extends "accounts/profile_base.html" %}
+{% load static %}
+{% block title %}Редактирование профиля — StudyMate{% endblock %}
+{% block extra_head %}<script src="{% static 'js/profile.js' %}" defer></script>{% endblock %}
+{% block profile_content %}
+<h1>Редактирование профиля</h1>
+<p role="img" aria-label="Заглушка аватара">[Аватар]</p>
+<p>Поля со звёздочкой обязательны.</p>
+<form id="profile-form" method="post" enctype="multipart/form-data" action="{% url 'profiles:edit' %}" data-has-errors="{{ form.errors|yesno:'true,false' }}">
+    {% csrf_token %}
+    {% if form.errors %}<p role="alert">Проверьте поля формы. Изменения не сохранены.</p>{% endif %}
+    {% for error in form.non_field_errors %}<p role="alert">{{ error }}</p>{% endfor %}
+    {% for field in form %}
+        {% if field.name == 'skills' %}
+        <fieldset>
+            <legend>{{ field.label }} *</legend>
+            <p>{{ field.help_text }}</p>
+            {{ field }}
+            {% for error in field.errors %}<p role="alert">{{ error }}</p>{% endfor %}
+        </fieldset>
+        {% else %}
+        <p>
+            {{ field.label_tag }}{% if field.field.required %} *{% endif %}<br>
+            {{ field }}
+            {% if field.help_text %}<br>{{ field.help_text }}{% endif %}
+            {% if field.name == 'bio' %}<br><span id="bio-counter" aria-live="polite">{{ field.value|default_if_none:""|length }} / 1000 символов</span>{% endif %}
+            {% for error in field.errors %}<br><span role="alert">{{ error }}</span>{% endfor %}
+        </p>
+        {% endif %}
+    {% endfor %}
+    <p>Желаемая роль показывает ваше предпочтение и не меняет заявки, состав команды или права управления проектами.</p>
+    <p>Сведения вашего профиля будут доступны всем зарегистрированным студентам StudyMate. Email и пароль в профиле не отображаются.</p>
+    <button type="submit">Сохранить</button>
+    <a href="{{ cancel_url }}">Отмена</a>
+</form>
+<dialog id="unsaved-dialog" aria-labelledby="unsaved-title">
+    <h2 id="unsaved-title">Выйти без сохранения?</h2>
+    <p>В профиле есть несохранённые изменения.</p>
+    <button id="keep-editing" type="button">Остаться</button>
+    <button id="discard-changes" type="button">Выйти без сохранения</button>
+</dialog>
+{% endblock %}

@@ -73,9 +73,9 @@ class AuthSubmissionTests(TestCase):
                 self.assertEqual(self.client.session[SESSION_KEY], str(user.pk))
                 if htmx:
                     self.assertEqual(
-                        response.headers["HX-Redirect"], reverse("main:home")
+                        response.headers["HX-Redirect"], reverse("profiles:edit")
                     )
                 else:
                     self.assertRedirects(
-                        response, reverse("main:home"), fetch_redirect_response=False,
+                        response, reverse("profiles:edit"), fetch_redirect_response=False,
                     )

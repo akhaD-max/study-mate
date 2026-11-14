@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import BaseUserCreationForm, UserChangeForm
 
-from .models import User, normalize_email
+from .models import Skill, Specialization, User, normalize_email
 
 
 class EmailUserCreationForm(BaseUserCreationForm):
@@ -42,7 +42,20 @@ class UserAdmin(BaseUserAdmin):
     readonly_fields = ("last_login", "date_joined")
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("Личные данные", {"fields": ("full_name",)}),
+        (
+            "Личные данные",
+            {
+                "fields": (
+                    "full_name",
+                    "university",
+                    "specialty",
+                    "course",
+                    "bio",
+                    "desired_role",
+                    "skills",
+                )
+            },
+        ),
         (
             "Права",
             {
@@ -66,3 +79,18 @@ class UserAdmin(BaseUserAdmin):
             },
         ),
     )
+    filter_horizontal = ("groups", "user_permissions", "skills")
+
+
+@admin.register(Skill)
+class SkillAdmin(admin.ModelAdmin):
+    list_display = ("name", "category", "is_active")
+    list_filter = ("category", "is_active")
+    search_fields = ("name",)
+
+
+@admin.register(Specialization)
+class SpecializationAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "is_active")
+    list_filter = ("is_active",)
+    search_fields = ("name", "code")

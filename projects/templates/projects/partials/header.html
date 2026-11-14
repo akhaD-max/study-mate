@@ -4,6 +4,7 @@
         <nav aria-label="Основная навигация">
             <a href="{% url 'projects:catalog' %}">Каталог</a>
             {% if user.is_authenticated %}
+                <a href="{% url 'profiles:self' %}">Профиль</a>
                 <a href="{% url 'projects:mine' %}">Мои проекты</a>
                 <a href="{% url 'applications:mine' %}">Мои заявки</a>
                 <a class="catalog-login" href="{% url 'projects:create' %}">Создать проект</a>
@@ -13,7 +14,7 @@
                     </summary>
                     <div class="catalog-user-dropdown" role="menu">
                         <p class="catalog-user-name">{{ user.get_full_name }}</p>
-                        <button class="catalog-user-item" type="button" role="menuitem" disabled aria-disabled="true" title="Раздел пока в разработке">Мой профиль</button>
+                        <a class="catalog-user-item" href="{% url 'profiles:self' %}" role="menuitem">Мой профиль</a>
                         <form class="catalog-user-logout-form" method="post" action="{% url 'accounts:logout' %}">
                             {% csrf_token %}
                             <button class="catalog-user-item catalog-user-logout" type="submit" role="menuitem">Выйти</button>

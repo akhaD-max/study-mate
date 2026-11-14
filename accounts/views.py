@@ -1,12 +1,15 @@
+from django.contrib import messages
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.views import LoginView
 from django.db import IntegrityError, transaction
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_http_methods, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
-from .forms import AuthenticationForm, RegistrationForm
+from .decorators import session_required
+from .forms import AuthenticationForm, ProfileForm, RegistrationForm
+from .services import update_profile
 
 User = get_user_model()
 
@@ -38,7 +41,7 @@ def register_page(request):
                 )
             else:
                 login(request, user)
-                return auth_redirect(request, reverse("main:home"))
+                return auth_redirect(request, reverse("profiles:edit"))
     else:
         form = RegistrationForm()
 
@@ -76,3 +79,62 @@ class LoginPageView(LoginView):
 def logout_page(request):
     logout(request)
     return redirect("main:catalog")
+
+
+@session_required
+@require_GET
+def own_profile(request):
+    return redirect("profiles:detail", user_id=request.user.pk)
+
+
+@session_required
+@require_GET
+def profile_detail(request, user_id):
+    profile_user = get_object_or_404(
+        User.objects.select_related("desired_role").prefetch_related("skills"),
+        pk=user_id,
+        is_active=True,
+    )
+    profile_is_empty = not any(
+        (
+            profile_user.university,
+            profile_user.specialty,
+            profile_user.course,
+            profile_user.bio,
+            profile_user.desired_role_id,
+            profile_user.skills.all(),
+        )
+    )
+    return render(
+        request,
+        "accounts/profile_detail.html",
+        {
+            "profile_user": profile_user,
+            "is_owner": request.user.pk == profile_user.pk,
+            "profile_is_empty": profile_is_empty,
+        },
+    )
+
+
+@session_required
+@require_http_methods(["GET", "POST"])
+def profile_edit(request):
+    # URL не принимает ID редактируемого аккаунта: владелец определяется сессией.
+    form = ProfileForm(
+        request.POST if request.method == "POST" else None,
+        instance=request.user,
+    )
+    if request.method == "POST" and form.is_valid():
+        profile = update_profile(user=request.user, profile_data=form.cleaned_data)
+        messages.success(request, "Профиль успешно обновлён")
+        return redirect("profiles:detail", user_id=profile.pk)
+    return render(
+        request,
+        "accounts/profile_edit.html",
+        {
+            "form": form,
+            "cancel_url": reverse(
+                "profiles:detail", kwargs={"user_id": request.user.pk}
+            ),
+        },
+    )

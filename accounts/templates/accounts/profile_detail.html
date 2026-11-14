@@ -1,0 +1,31 @@
+{% extends "accounts/profile_base.html" %}
+{% block title %}{{ profile_user.get_full_name }} — StudyMate{% endblock %}
+{% block profile_content %}
+<h1>{{ profile_user.get_full_name }}</h1>
+<p role="img" aria-label="Заглушка аватара">[Аватар]</p>
+{% if is_owner %}<p><a href="{% url 'profiles:edit' %}">Редактировать профиль</a></p>{% endif %}
+{% if profile_is_empty %}
+    <p>Пользователь пока не заполнил профиль</p>
+{% else %}
+    <dl>
+        <dt>Вуз</dt><dd>{{ profile_user.university|default:"Не указан" }}</dd>
+        <dt>Специальность</dt><dd>{{ profile_user.specialty|default:"Не указана" }}</dd>
+        <dt>Курс</dt><dd>{{ profile_user.course|default_if_none:"Не указан" }}</dd>
+        {% if profile_user.desired_role %}
+            <dt>Желаемая роль</dt><dd>{{ profile_user.desired_role.name }}</dd>
+        {% endif %}
+    </dl>
+    <h2>Навыки</h2>
+    <ul>
+        {% for skill in profile_user.skills.all %}
+            <li>{{ skill.name }} — {{ skill.get_category_display }}</li>
+        {% empty %}<li>Пока не указаны</li>{% endfor %}
+    </ul>
+    {% if profile_user.bio %}
+        <h2>О себе</h2>
+        <p>{{ profile_user.bio|linebreaksbr }}</p>
+    {% endif %}
+{% endif %}
+<p><a href="{% url 'projects:catalog' %}">Вернуться в каталог</a></p>
+<p><button type="button" onclick="history.back()">Назад</button></p>
+{% endblock %}

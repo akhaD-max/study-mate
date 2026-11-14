@@ -74,7 +74,7 @@
                                     <h3><a href="{% url 'projects:detail' project.id %}">{{ project.title }}</a></h3>
                                     <p class="catalog-card-description">{{ project.description|default:'Описание пока не добавлено.'|truncatechars:160 }}</p>
                                     <p class="catalog-role-pill">Ищем: {% for role in project.catalog_roles %}{{ role.name }} — свободных мест: {{ role.free_places }}{% if not forloop.last %} · {% endif %}{% empty %}Открытых ролей нет{% endfor %}</p>
-                                    <p class="catalog-card-meta">{{ project.author.get_full_name }} · {{ project.category.name }} · Участников: {{ project.member_count }}</p>
+                                    <p class="catalog-card-meta"><a href="{% url 'profiles:detail' project.author_id %}">{{ project.author.get_full_name }}</a> · {{ project.category.name }} · Участников: {{ project.member_count }}</p>
                                 </div>
                                 <div class="catalog-card-actions">
                                     {% if project.recruitment_open %}<span class="catalog-badge">Набор открыт</span>{% else %}<span class="catalog-badge catalog-badge-closed">Набор закрыт</span>{% endif %}
