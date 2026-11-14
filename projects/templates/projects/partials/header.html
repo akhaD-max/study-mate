@@ -4,7 +4,6 @@
         <nav aria-label="Основная навигация">
             <a href="{% url 'projects:catalog' %}">Каталог</a>
             {% if user.is_authenticated %}
-                <a{% if '/profile/' in request.path %} class="catalog-nav-active" aria-current="page"{% endif %} href="{% url 'profiles:self' %}">Профиль</a>
                 <a href="{% url 'projects:mine' %}">Мои проекты</a>
                 <a href="{% url 'applications:mine' %}">Мои заявки</a>
                 <a class="catalog-login" href="{% url 'projects:create' %}">Создать проект</a>
