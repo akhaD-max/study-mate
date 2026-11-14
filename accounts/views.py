@@ -1,7 +1,9 @@
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.views import LoginView
+from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -9,6 +11,7 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from .decorators import session_required
 from .forms import AuthenticationForm, ProfileForm, RegistrationForm
+from .selectors import profile_projects
 from .services import update_profile
 
 User = get_user_model()
@@ -105,13 +108,35 @@ def profile_detail(request, user_id):
             profile_user.skills.all(),
         )
     )
+    is_owner = request.user.pk == profile_user.pk
+    projects = profile_projects(user_id=profile_user.pk, is_owner=is_owner)
+    project_counts = projects.aggregate(
+        all=Count("pk"),
+        in_progress=Count("pk", filter=Q(status="in_progress")),
+        completed=Count("pk", filter=Q(status="completed")),
+    )
+    project_tab = request.GET.get("project_tab", "all")
+    if project_tab not in ("all", "in_progress", "completed"):
+        project_tab = "all"
+    if project_tab != "all":
+        projects = projects.filter(status=project_tab)
+    pending_count = (
+        profile_user.applications.filter(status="pending").count() if is_owner else None
+    )
     return render(
         request,
         "accounts/profile_detail.html",
         {
             "profile_user": profile_user,
-            "is_owner": request.user.pk == profile_user.pk,
+            "is_owner": is_owner,
             "profile_is_empty": profile_is_empty,
+            "profile_initials": profile_initials(profile_user),
+            "profile_projects": Paginator(projects, 6).get_page(
+                request.GET.get("page")
+            ),
+            "project_counts": project_counts,
+            "project_tab": project_tab,
+            "pending_count": pending_count,
         },
     )
 
@@ -133,8 +158,14 @@ def profile_edit(request):
         "accounts/profile_edit.html",
         {
             "form": form,
+            "profile_initials": profile_initials(request.user),
             "cancel_url": reverse(
                 "profiles:detail", kwargs={"user_id": request.user.pk}
             ),
         },
     )
+
+
+def profile_initials(user):
+    words = user.full_name.split()
+    return "".join(word[0] for word in words[:2]).upper() or "С"

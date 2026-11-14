@@ -1,31 +1,61 @@
 {% extends "accounts/profile_base.html" %}
 {% block title %}{{ profile_user.get_full_name }} — StudyMate{% endblock %}
 {% block profile_content %}
-<h1>{{ profile_user.get_full_name }}</h1>
-<p role="img" aria-label="Заглушка аватара">[Аватар]</p>
-{% if is_owner %}<p><a href="{% url 'profiles:edit' %}">Редактировать профиль</a></p>{% endif %}
-{% if profile_is_empty %}
-    <p>Пользователь пока не заполнил профиль</p>
-{% else %}
-    <dl>
-        <dt>Вуз</dt><dd>{{ profile_user.university|default:"Не указан" }}</dd>
-        <dt>Специальность</dt><dd>{{ profile_user.specialty|default:"Не указана" }}</dd>
-        <dt>Курс</dt><dd>{{ profile_user.course|default_if_none:"Не указан" }}</dd>
-        {% if profile_user.desired_role %}
-            <dt>Желаемая роль</dt><dd>{{ profile_user.desired_role.name }}</dd>
-        {% endif %}
-    </dl>
-    <h2>Навыки</h2>
-    <ul>
-        {% for skill in profile_user.skills.all %}
-            <li>{{ skill.name }} — {{ skill.get_category_display }}</li>
-        {% empty %}<li>Пока не указаны</li>{% endfor %}
-    </ul>
-    {% if profile_user.bio %}
-        <h2>О себе</h2>
-        <p>{{ profile_user.bio|linebreaksbr }}</p>
-    {% endif %}
-{% endif %}
-<p><a href="{% url 'projects:catalog' %}">Вернуться в каталог</a></p>
-<p><button type="button" onclick="history.back()">Назад</button></p>
+<h1 class="profile-page-title">{% if is_owner %}Мой профиль{% else %}Профиль участника{% endif %}</h1>
+<section class="profile-hero" aria-labelledby="profile-name">
+    <div class="profile-identity">
+        <span class="profile-avatar" role="img" aria-label="Заглушка аватара">{{ profile_initials }}</span>
+        <div class="profile-identity-copy">
+            <h2 id="profile-name">{{ profile_user.get_full_name }}</h2>
+            {% if profile_user.desired_role %}<p class="profile-role">{{ profile_user.desired_role.name }}</p>{% endif %}
+            <p class="profile-education">{{ profile_user.university|default:"Вуз пока не указан" }}{% if profile_user.course %} · {{ profile_user.course }} курс{% endif %}</p>
+            {% if profile_user.specialty %}<p class="profile-education">{{ profile_user.specialty }}</p>{% endif %}
+            {% if profile_is_empty %}<p class="profile-education">Пользователь пока не заполнил профиль</p>{% endif %}
+        </div>
+    </div>
+    <div class="profile-hero-actions">
+        <div class="profile-edit-action"><span class="profile-spark" aria-hidden="true">✳</span>{% if is_owner %}<a class="profile-button profile-button-lime" href="{% url 'profiles:edit' %}">Редактировать профиль</a>{% endif %}</div>
+        <div class="profile-stats">
+            <p>Проектов: {{ project_counts.all }} · В работе: {{ project_counts.in_progress }}</p>
+            {% if is_owner %}<p>Заявок на рассмотрении: {{ pending_count }}</p>{% endif %}
+        </div>
+    </div>
+</section>
+
+<div class="profile-content-grid">
+    <aside class="profile-sidebar" aria-label="Сведения об участнике">
+        <section class="profile-card" aria-labelledby="about-title">
+            <div class="profile-card-heading"><h2 id="about-title">О себе</h2>{% include "accounts/partials/profile_icon.html" with icon="layers" %}</div>
+            <div class="profile-card-body profile-bio">{% if profile_user.bio %}{{ profile_user.bio|linebreaksbr }}{% else %}<p class="profile-muted">{% if profile_is_empty %}Пользователь пока не заполнил профиль{% else %}Описание пока не добавлено{% endif %}</p>{% endif %}</div>
+        </section>
+        <section class="profile-card" aria-labelledby="skills-title">
+            <div class="profile-card-heading"><h2 id="skills-title">Навыки</h2>{% include "accounts/partials/profile_icon.html" with icon="chart" %}</div>
+            <div class="profile-card-body"><ul class="profile-tags">{% for skill in profile_user.skills.all %}<li class="profile-tag">{{ skill.name }}</li>{% empty %}<li class="profile-muted">Навыки пока не указаны</li>{% endfor %}</ul></div>
+        </section>
+    </aside>
+
+    <div class="profile-project-column">
+        <section class="profile-card profile-projects" aria-labelledby="projects-title">
+            <div class="profile-projects-heading">
+                <div class="profile-project-title-row"><h2 id="projects-title">{% if is_owner %}Мои проекты{% else %}Проекты участника{% endif %}</h2><span class="profile-count">{{ project_counts.all }}</span><a class="profile-text-link" href="{% url 'projects:catalog' %}">Найти проект</a></div>
+                <nav class="profile-tabs" aria-label="Фильтр проектов">
+                    <a class="profile-tab{% if project_tab == 'all' %} is-active{% endif %}" href="{% querystring project_tab='all' page=None %}"{% if project_tab == 'all' %} aria-current="page"{% endif %}>Все · {{ project_counts.all }}</a>
+                    <a class="profile-tab{% if project_tab == 'in_progress' %} is-active{% endif %}" href="{% querystring project_tab='in_progress' page=None %}"{% if project_tab == 'in_progress' %} aria-current="page"{% endif %}>В работе · {{ project_counts.in_progress }}</a>
+                    <a class="profile-tab{% if project_tab == 'completed' %} is-active{% endif %}" href="{% querystring project_tab='completed' page=None %}"{% if project_tab == 'completed' %} aria-current="page"{% endif %}>Завершённые · {{ project_counts.completed }}</a>
+                </nav>
+            </div>
+            <div class="profile-project-list">
+                {% for project in profile_projects %}
+                <article class="profile-project-row">
+                    {% include "accounts/partials/profile_icon.html" with icon="layers" %}
+                    <div class="profile-project-copy"><h3><a href="{% url 'projects:detail' project.id %}">{{ project.title }}</a></h3><p>{{ project.description|truncatechars:100|default:"Описание пока не добавлено" }}</p><p class="profile-project-role">{% if is_owner %}Моя роль{% else %}Роль в проекте{% endif %}: {{ project.profile_role }}</p></div>
+                    <div class="profile-project-actions"><span class="profile-status profile-status-{{ project.status }}">{{ project.get_status_display }}</span><a class="profile-text-link" href="{% url 'projects:detail' project.id %}">Открыть <span aria-hidden="true">→</span></a></div>
+                </article>
+                {% empty %}<div class="profile-empty"><h3>{% if project_tab == 'all' %}Проектов пока нет{% else %}Здесь пока нет проектов{% endif %}</h3><p>{% if is_owner %}Найдите интересный проект в каталоге или создайте свой.{% else %}Здесь появятся проекты участника в работе и завершённые проекты.{% endif %}</p><a class="profile-text-link" href="{% url 'projects:catalog' %}">Перейти в каталог <span aria-hidden="true">→</span></a></div>{% endfor %}
+            </div>
+            {% if profile_projects.has_other_pages %}<nav class="profile-pagination" aria-label="Страницы проектов">{% if profile_projects.has_previous %}<a href="{% querystring page=profile_projects.previous_page_number %}">← Назад</a>{% endif %}<span>{{ profile_projects.number }} / {{ profile_projects.paginator.num_pages }}</span>{% if profile_projects.has_next %}<a href="{% querystring page=profile_projects.next_page_number %}">Далее →</a>{% endif %}</nav>{% endif %}
+        </section>
+        {% if is_owner %}<section class="profile-card profile-applications"><div><h2>Мои заявки</h2><p>На рассмотрении у авторов проектов: {{ pending_count }}</p></div><a class="profile-text-link" href="{% url 'applications:mine' %}">Посмотреть <span aria-hidden="true">→</span></a></section>{% endif %}
+    </div>
+</div>
 {% endblock %}

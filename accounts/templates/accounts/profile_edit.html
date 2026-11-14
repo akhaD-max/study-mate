@@ -3,40 +3,44 @@
 {% block title %}Редактирование профиля — StudyMate{% endblock %}
 {% block extra_head %}<script src="{% static 'js/profile.js' %}" defer></script>{% endblock %}
 {% block profile_content %}
-<h1>Редактирование профиля</h1>
-<p role="img" aria-label="Заглушка аватара">[Аватар]</p>
-<p>Поля со звёздочкой обязательны.</p>
-<form id="profile-form" method="post" enctype="multipart/form-data" action="{% url 'profiles:edit' %}" data-has-errors="{{ form.errors|yesno:'true,false' }}">
-    {% csrf_token %}
-    {% if form.errors %}<p role="alert">Проверьте поля формы. Изменения не сохранены.</p>{% endif %}
-    {% for error in form.non_field_errors %}<p role="alert">{{ error }}</p>{% endfor %}
-    {% for field in form %}
-        {% if field.name == 'skills' %}
-        <fieldset>
-            <legend>{{ field.label }} *</legend>
-            <p>{{ field.help_text }}</p>
-            {{ field }}
-            {% for error in field.errors %}<p role="alert">{{ error }}</p>{% endfor %}
-        </fieldset>
-        {% else %}
-        <p>
-            {{ field.label_tag }}{% if field.field.required %} *{% endif %}<br>
-            {{ field }}
-            {% if field.help_text %}<br>{{ field.help_text }}{% endif %}
-            {% if field.name == 'bio' %}<br><span id="bio-counter" aria-live="polite">{{ field.value|default_if_none:""|length }} / 1000 символов</span>{% endif %}
-            {% for error in field.errors %}<br><span role="alert">{{ error }}</span>{% endfor %}
-        </p>
-        {% endif %}
-    {% endfor %}
-    <p>Желаемая роль показывает ваше предпочтение и не меняет заявки, состав команды или права управления проектами.</p>
-    <p>Сведения вашего профиля будут доступны всем зарегистрированным студентам StudyMate. Email и пароль в профиле не отображаются.</p>
-    <button type="submit">Сохранить</button>
-    <a href="{{ cancel_url }}">Отмена</a>
-</form>
-<dialog id="unsaved-dialog" aria-labelledby="unsaved-title">
-    <h2 id="unsaved-title">Выйти без сохранения?</h2>
-    <p>В профиле есть несохранённые изменения.</p>
-    <button id="keep-editing" type="button">Остаться</button>
-    <button id="discard-changes" type="button">Выйти без сохранения</button>
-</dialog>
+<section class="profile-hero profile-editor-hero"><div><h1>Редактирование профиля</h1><p>Обновите информацию, которую увидят участники и авторы проектов.</p></div><span class="profile-spark" aria-hidden="true">✳</span></section>
+<section class="profile-card profile-editor" aria-labelledby="basic-title">
+    <div class="profile-card-heading"><h2 id="basic-title">Основная информация</h2></div>
+    <form id="profile-form" class="profile-form" method="post" enctype="multipart/form-data" action="{% url 'profiles:edit' %}" data-has-errors="{{ form.errors|yesno:'true,false' }}">
+        {% csrf_token %}
+        {% if form.errors %}<div class="profile-notice profile-notice-error" role="alert">Проверьте отмеченные поля. Изменения пока не сохранены.</div>{% endif %}
+        {% for error in form.non_field_errors %}<p class="profile-field-error" role="alert">{{ error }}</p>{% endfor %}
+        <div class="profile-avatar-row"><span class="profile-avatar profile-avatar-small" role="img" aria-label="Заглушка аватара">{{ profile_initials }}</span><span class="profile-muted">Ваш профиль в StudyMate</span></div>
+        <div class="profile-fields-grid">
+            {% include "accounts/partials/profile_field.html" with field=form.full_name %}
+            {% include "accounts/partials/profile_field.html" with field=form.desired_role %}
+            {% include "accounts/partials/profile_field.html" with field=form.university %}
+            {% include "accounts/partials/profile_field.html" with field=form.course %}
+            {% include "accounts/partials/profile_field.html" with field=form.specialty wide=True %}
+        </div>
+
+        <section class="profile-form-section" aria-labelledby="bio-title"><h2 id="bio-title">О себе</h2><div class="profile-field{% if form.bio.errors %} has-error{% endif %}"><label class="profile-sr-only" for="{{ form.bio.id_for_label }}">О себе</label>{{ form.bio }}<p id="bio-counter" class="profile-counter" aria-live="polite">{{ form.bio.value|default_if_none:""|length }} / 1000 символов</p>{% for error in form.bio.errors %}<p class="profile-field-error" role="alert">{{ error }}</p>{% endfor %}</div></section>
+
+        <section class="profile-form-section" aria-labelledby="skills-title">
+            <h2 id="skills-title">Навыки <span class="profile-required">*</span></h2>
+            <p class="profile-field-help" id="skills-help">{{ form.skills.help_text }}</p>
+            <div id="selected-skills" class="profile-selected-skills" aria-label="Выбранные навыки" hidden></div>
+            <details id="skills-picker" class="profile-skills-picker"{% if form.skills.errors %} open{% endif %}>
+                <summary>+ Добавить навык <span id="skills-count"></span></summary>
+                <div class="profile-skills-panel">
+                    <div class="profile-skill-search" hidden><label class="profile-sr-only" for="skill-search">Найти навык</label><input id="skill-search" type="search" placeholder="Найти навык в справочнике" autocomplete="off"></div>
+                    <fieldset class="profile-skill-options" aria-describedby="skills-help"><legend class="profile-sr-only">Выберите от 1 до 15 навыков</legend>{% for checkbox in form.skills %}<div class="profile-skill-option">{{ checkbox }}</div>{% endfor %}</fieldset>
+                    <p id="skill-search-empty" class="profile-muted" hidden>Навык не найден. Попробуйте другой запрос.</p>
+                </div>
+            </details>
+            <p id="skills-feedback" class="profile-field-error" role="status" hidden></p>
+            {% for error in form.skills.errors %}<p class="profile-field-error" role="alert">{{ error }}</p>{% endfor %}
+        </section>
+
+        <p class="profile-visibility">Сведения вашего профиля будут доступны всем зарегистрированным студентам StudyMate. Email и пароль в профиле не отображаются.</p>
+        <div class="profile-form-actions"><button class="profile-button profile-button-blue" type="submit">Сохранить изменения</button><a class="profile-button profile-button-secondary" href="{{ cancel_url }}">Отмена</a></div>
+        <p class="profile-field-help profile-mandatory">Поля со звёздочкой обязательны.</p>
+    </form>
+</section>
+<dialog id="unsaved-dialog" class="profile-dialog" aria-labelledby="unsaved-title"><h2 id="unsaved-title">Выйти без сохранения?</h2><p>В профиле есть несохранённые изменения.</p><div class="profile-dialog-actions"><button id="keep-editing" class="profile-button profile-button-secondary" type="button" autofocus>Остаться</button><button id="discard-changes" class="profile-button profile-button-blue" type="button">Выйти без сохранения</button></div></dialog>
 {% endblock %}
