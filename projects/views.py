@@ -10,7 +10,12 @@ from applications.forms import ApplicationForm
 from applications.models import Application
 from applications.services import application_block_reason
 
-from .forms import CatalogFilterForm, ProjectCreateForm, ProjectRoleFormSet
+from .forms import (
+    CatalogFilterForm,
+    ProjectCreateForm,
+    ProjectRoleFormSet,
+    RoleSkillsForm,
+)
 from .models import Category, Project, ProjectMember
 from .selectors import (
     catalog_projects,
@@ -18,7 +23,7 @@ from .selectors import (
     list_catalog_role_names,
     list_roles,
 )
-from .services import create_project
+from .services import create_project, get_role_for_skill_edit, update_role_skills
 
 
 def plural_ru(number, one, few, many):
@@ -34,7 +39,7 @@ def plural_ru(number, one, few, many):
 
 def detail_context(user, project_id, form=None):
     project = get_project(project_id)
-    roles = list(list_roles(project_id))
+    roles = list(list_roles(project_id).prefetch_related("required_skills"))
     reason = application_block_reason(project, user.pk)
     if not reason and not any(r.is_available for r in roles):
         reason = "Нет доступных ролей."
@@ -178,6 +183,22 @@ def create(request):
         # HTMX заменяет только набор ролей, не перерисовывая страницу целиком.
         template = "projects/partials/role_formset.html"
     return render(request, template, context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def edit_role_skills(request, project_id, role_id):
+    identifiers = {"author": request.user, "project_id": project_id, "role_id": role_id}
+    if request.method == "POST":
+        project, role, form = update_role_skills(data=request.POST, **identifiers)
+        if form.is_valid():
+            return redirect("projects:detail", project_id=project.pk)
+    else:
+        project, role = get_role_for_skill_edit(**identifiers)
+        form = RoleSkillsForm(role=role)
+    return render(request, "projects/role_skills_edit.html", {
+        "project": project, "role": role, "form": form,
+    })
 
 
 @login_required

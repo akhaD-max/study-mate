@@ -126,6 +126,12 @@ class ProjectRole(models.Model):
         validators=[MinValueValidator(1)],
     )
     is_open = models.BooleanField("набор открыт", default=True)
+    required_skills = models.ManyToManyField(
+        "accounts.Skill",
+        verbose_name="обязательные навыки",
+        related_name="project_roles",
+        blank=True,
+    )
     created_at = models.DateTimeField("создана", auto_now_add=True)
 
     objects = ProjectRoleQuerySet.as_manager()
