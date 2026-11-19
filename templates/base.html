@@ -31,7 +31,7 @@
                         <span class="nav-icon" aria-hidden="true">▣</span>
                         <span>Мои заявки</span>
                     </a>
-                    <a class="nav-link{% if '/accounts/profile/' in request.path %} is-active{% endif %}" href="/accounts/profile/">
+                    <a class="nav-link{% if '/profile/' in request.path %} is-active{% endif %}" href="{% url 'profiles:self' %}">
                         <span class="nav-icon" aria-hidden="true">●</span>
                         <span>Профиль</span>
                     </a>

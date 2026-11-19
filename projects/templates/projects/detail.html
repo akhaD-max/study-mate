@@ -70,8 +70,8 @@
         <section class="pg-card pg-pad pg-team" aria-labelledby="team-title">
             <h2 class="pg-card-title" id="team-title">{{ team_label }}</h2>
             <div class="pg-member-pills">
-                <span class="pg-member-pill">{{ project.author.get_full_name }} · Автор проекта</span>
-                {% for member in members %}<span class="pg-member-pill">{{ member.user.get_full_name }} · {{ member.role.name }}</span>{% endfor %}
+                <span class="pg-member-pill"><a href="{% url 'profiles:detail' project.author_id %}">{{ project.author.get_full_name }}</a> · Автор проекта</span>
+                {% for member in members %}<span class="pg-member-pill"><a href="{% url 'profiles:detail' member.user_id %}">{{ member.user.get_full_name }}</a> · {{ member.role.name }}</span>{% endfor %}
             </div>
             {% if not members %}<p class="pg-muted">Первый участник может быть совсем рядом.</p>{% endif %}
             {% if looking_for %}

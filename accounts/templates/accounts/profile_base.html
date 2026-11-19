@@ -1,0 +1,22 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Профиль — StudyMate{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'css/catalog.css' %}">
+    <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+    <script src="{% static 'js/header-menu.js' %}" defer></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="catalog-shell profile-page">
+    {% include "projects/partials/header.html" %}
+    <main class="profile-main">
+        {% for message in messages %}<p class="profile-notice" role="status">{{ message }}</p>{% endfor %}
+        {% block profile_content %}{% endblock %}
+    </main>
+    <footer class="profile-footer"><span>StudyMate · Профиль участника</span><a href="{% url 'projects:catalog' %}">Найти свою команду <span aria-hidden="true">↗</span></a></footer>
+</body>
+</html>

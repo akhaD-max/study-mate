@@ -24,7 +24,8 @@ class HeaderUserMenuTests(TestCase):
         self.assertIn('aria-label="Меню пользователя: Иван Петров"', html)
         self.assertIn(">И<", html)
         self.assertIn("Мой профиль", html)
-        self.assertIn("aria-disabled=\"true\"", html)
+        self.assertIn(reverse("profiles:self"), html)
+        self.assertNotIn("aria-disabled=\"true\"", html)
         self.assertIn("Выйти", html)
         self.assertIn(reverse("accounts:logout"), html)
 
