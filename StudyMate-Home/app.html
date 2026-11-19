@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StudyMate</title>
+  <link rel="stylesheet" href="app.css">
+  <link rel="stylesheet" href="layouts.css">
+  <link rel="stylesheet" href="portfolio.css">
+  <script defer src="routes.js"></script>
+  <script defer src="pixel-headings.js"></script><script defer src="app.js"></script>
+<link rel="stylesheet" href="footer.css"></head>
+<body>
+  <header class="mast">
+    <div class="mast-inner wrap">
+      <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true">✳</span> study<span>mate</span></a>
+      <a class="entry" href="#login">Войти</a>
+    </div>
+    <nav class="wrap nav-rail" id="nav" aria-label="Навигация платформы"></nav>
+  </header>
+  <main class="wrap">
+    <section class="poster">
+      <div class="titlebar"><span id="section">StudyMate</span><span class="lights" aria-hidden="true">● ○ ○</span></div>
+      <div class="hero">
+        <h1 id="title" tabindex="-1"></h1><p id="description"></p>
+        <svg class="flare" viewBox="0 0 120 120" aria-hidden="true"><path d="m60 1 10 39 35-23-20 37 34 6-37 11 20 35-33-20-9 33-10-35-35 21 20-34L1 60l37-10-20-33 33 21Z"/></svg>
+      </div>
+    </section>
+    <div class="workspace"><form class="panel glass" id="content"></form>
+      <aside class="panel glass context"><h2 id="context-title"></h2><p id="context-copy"></p><nav id="context-links" aria-label="Связанные разделы"></nav></aside>
+    </div>
+    <div class="prototype"><details><summary>Все экраны прототипа</summary><p>Демонстрационные данные</p><nav id="screens" aria-label="Все экраны"></nav></details></div>
+  </main>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <a class="footer-brand" href="index.html" aria-label="StudyMate — главная">study<span>mate</span></a>
+    <nav class="footer-nav" aria-label="Навигация в подвале">
+      <a href="app.html#catalog">Проекты</a>
+      <a href="app.html#profile">Мой профиль</a>
+      <a href="app.html#applications">Заявки</a>
+    </nav>
+    <button type="button" class="footer-up" onclick="document.querySelector('header a').focus();window.scrollTo(0,0)">Наверх ↑</button>
+  </div>
+</footer>
+</body>
+</html>
