@@ -17,6 +17,6 @@
         {% for message in messages %}<p class="profile-notice" role="status">{{ message }}</p>{% endfor %}
         {% block profile_content %}{% endblock %}
     </main>
-    <footer class="profile-footer"><span>StudyMate · Профиль участника</span><a href="{% url 'projects:catalog' %}">Найти свою команду <span aria-hidden="true">↗</span></a></footer>
+    {% include "partials/site_footer.html" %}
 </body>
 </html>
