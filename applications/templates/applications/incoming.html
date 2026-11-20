@@ -68,27 +68,40 @@
                     <p class="in-match-note">По текущим навыкам и требованиям роли</p>
                 {% endif %}
                 {% comment %}
-                    Совпавшие и недостающие навыки видны сразу: это суть решения
-                    по заявке. Дополнительные навыки свернуты в <details> без JS.
+                    По умолчанию на карточке только процент. Навыки — двухуровневая
+                    раскрывашка: сначала «Подробности» (совпадают/не хватает),
+                    внутри неё отдельно раскрываются дополнительные навыки.
                 {% endcomment %}
-                {% if application.skill_match.matched_skills %}
-                    <div class="in-skill-group">
-                        <span class="in-skill-label">Совпадают <span class="in-skill-count">{{ application.skill_match.matched_skills|length }}</span></span>
-                        <ul>{% for skill in application.skill_match.matched_skills %}<li class="in-skill-matched">{{ skill.name }}</li>{% endfor %}</ul>
-                    </div>
-                {% endif %}
-                {% if application.skill_match.missing_skills %}
-                    <div class="in-skill-group">
-                        <span class="in-skill-label">Не хватает <span class="in-skill-count">{{ application.skill_match.missing_skills|length }}</span></span>
-                        <ul>{% for skill in application.skill_match.missing_skills %}<li class="in-skill-missing">{{ skill.name }}</li>{% endfor %}</ul>
-                    </div>
-                {% endif %}
-                {% if application.skill_match.extra_skills %}
-                    <details class="in-skill-group in-skill-extra">
-                        <summary class="in-skill-label">Дополнительные навыки <span class="in-skill-count">{{ application.skill_match.extra_skills|length }}</span><span class="in-skill-toggle" aria-hidden="true"></span></summary>
-                        <ul>{% for skill in application.skill_match.extra_skills %}<li>{{ skill.name }}</li>{% endfor %}</ul>
+                {% with match=application.skill_match %}
+                {% if match.matched_skills or match.missing_skills or match.extra_skills %}
+                    <details class="in-skill-details">
+                        <summary class="in-skill-details-summary">
+                            <span>Подробности</span>
+                            <span class="in-skill-toggle" aria-hidden="true"></span>
+                        </summary>
+                        <div class="in-skill-body">
+                            {% if match.matched_skills %}
+                                <div class="in-skill-group">
+                                    <span class="in-skill-label">Совпадают <span class="in-skill-count">{{ match.matched_skills|length }}</span></span>
+                                    <ul>{% for skill in match.matched_skills %}<li class="in-skill-matched">{{ skill.name }}</li>{% endfor %}</ul>
+                                </div>
+                            {% endif %}
+                            {% if match.missing_skills %}
+                                <div class="in-skill-group">
+                                    <span class="in-skill-label">Не хватает <span class="in-skill-count">{{ match.missing_skills|length }}</span></span>
+                                    <ul>{% for skill in match.missing_skills %}<li class="in-skill-missing">{{ skill.name }}</li>{% endfor %}</ul>
+                                </div>
+                            {% endif %}
+                            {% if match.extra_skills %}
+                                <details class="in-skill-group in-skill-extra">
+                                    <summary class="in-skill-label">Дополнительные навыки <span class="in-skill-count">{{ match.extra_skills|length }}</span><span class="in-skill-toggle" aria-hidden="true"></span></summary>
+                                    <ul>{% for skill in match.extra_skills %}<li>{{ skill.name }}</li>{% endfor %}</ul>
+                                </details>
+                            {% endif %}
+                        </div>
                     </details>
                 {% endif %}
+                {% endwith %}
             </section>
         </div>
 

@@ -66,26 +66,29 @@ class IncomingSkillMatchTests(TestCase):
         # Для заявки на рассмотрении подписи «по текущим навыкам» ещё нет.
         self.assertNotContains(response, "По текущим навыкам и требованиям роли")
 
-    def test_matched_and_missing_are_visible_extra_skills_collapsed(self):
-        # Совпавшие и недостающие навыки видны сразу, дополнительные — только
-        # после раскрытия. Единственный <details> — группа дополнительных.
+    def test_skills_are_behind_two_levels_of_disclosures(self):
+        # По умолчанию на карточке только процент. Первый уровень — «Подробности»
+        # с совпавшими и недостающими навыками, второй — дополнительные навыки.
         self.candidate.skills.add(self.soft)
         response = self.page()
         html = response.content.decode()
-        # Кроме меню пользователя в шапке других раскрывашек нет.
-        self.assertEqual(html.count("<details"), 2)
-        self.assertNotIn('<details class="in-skill-group" open', html)
-        self.assertIn('class="in-skill-group in-skill-extra"', html)
-        matched_block = html.split("Совпадают", 1)[1].split("</div>", 1)[0]
-        self.assertIn("Python", matched_block)
-        missing_block = html.split("Не хватает", 1)[1].split("</div>", 1)[0]
-        self.assertIn("Figma", missing_block)
+        self.assertNotIn("<details open", html)
+        self.assertIn('class="in-skill-details"', html)
+        self.assertIn("Подробности", html)
+        outer = html.split('class="in-skill-details"', 1)[1]
+        outer = outer.split("</details>", 2)[0]
+        self.assertIn("Совпадают", outer)
+        self.assertIn("Python", outer)
+        self.assertIn("Не хватает", outer)
+        self.assertIn("Figma", outer)
+        nested = html.split('class="in-skill-group in-skill-extra"', 1)[1]
+        self.assertIn("Коммуникация", nested.split("</details>", 1)[0])
 
     def test_template_comment_is_not_rendered(self):
         # Многострочный {# #} Django не поддерживает — текст утекал в HTML.
         response = self.page()
-        self.assertNotContains(response, "Навыки скрыты по умолчанию")
-        self.assertNotContains(response, "работает без JS")
+        self.assertNotContains(response, "По умолчанию на карточке только процент")
+        self.assertNotContains(response, "двухуровневая")
         self.assertNotContains(response, "{#")
 
     def test_extra_skills_are_shown_without_changing_percent(self):

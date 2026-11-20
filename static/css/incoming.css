@@ -174,7 +174,29 @@
 }
 .in-match-score-empty { background: #f1f2f5; color: #6b7280; }
 .in-match-note { margin: 10px 0 0; color: #6b7280; font-size: 13px; line-height: 1.5; }
+/* Внешняя раскрывашка: по умолчанию виден только процент. */
+.in-skill-details { margin-top: 12px; }
+.in-skill-details-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    border: 1px solid #dde2ea;
+    border-radius: 100px;
+    background: #fff;
+    list-style: none;
+    cursor: pointer;
+    color: #2557e8;
+    font-size: 13px;
+    font-weight: 600;
+}
+.in-skill-details-summary::-webkit-details-marker { display: none; }
+.in-skill-details-summary:hover { border-color: #2557e8; }
+.in-skill-details-summary:focus-visible { outline: 2px solid #2557e855; outline-offset: 2px; }
+.in-skill-body { margin-top: 12px; }
+
 .in-skill-group { margin-top: 10px; }
+.in-skill-body > .in-skill-group:first-child { margin-top: 0; }
 .in-skill-label {
     display: inline-flex;
     align-items: center;
@@ -186,7 +208,7 @@
     letter-spacing: .05em;
     text-transform: uppercase;
 }
-/* Сворачивается только группа дополнительных навыков. */
+/* Дополнительные навыки — вторая ступень: сворачиваются внутри «Подробностей». */
 .in-skill-extra > .in-skill-label {
     padding: 3px 8px 3px 0;
     border-radius: 6px;
@@ -217,7 +239,8 @@
     transform: translate(-50%, -50%);
 }
 .in-skill-toggle::after { transform: translate(-50%, -50%) rotate(90deg); }
-.in-skill-group[open] .in-skill-toggle::after { opacity: 0; }
+.in-skill-details[open] > .in-skill-details-summary .in-skill-toggle::after,
+.in-skill-extra[open] > .in-skill-label .in-skill-toggle::after { opacity: 0; }
 .in-skill-extra[open] > .in-skill-label { margin-bottom: 4px; }
 .in-skill-group ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .in-skill-group li {
