@@ -8,7 +8,8 @@
         <div class="profile-identity-copy">
             <h2 id="profile-name">{{ profile_user.get_full_name }}</h2>
             {% if profile_user.desired_role %}<p class="profile-role">{{ profile_user.desired_role.name }}</p>{% endif %}
-            <p class="profile-education">{{ profile_user.university|default:"Вуз пока не указан" }}{% if profile_user.course %} · {{ profile_user.course }} курс{% endif %}</p>
+            <p class="profile-education">{{ profile_user.university|default:"Вуз пока не указан" }}</p>
+            {% if profile_user.education_status %}<p class="profile-education">{{ profile_user.education_summary }}</p>{% endif %}
             {% if profile_user.specialty %}<p class="profile-education">{{ profile_user.specialty }}</p>{% endif %}
             {% if profile_is_empty %}<p class="profile-education">Пользователь пока не заполнил профиль</p>{% endif %}
         </div>

@@ -105,6 +105,12 @@
 .profile-field.has-error input, .profile-field.has-error select, .profile-field.has-error textarea { border-color: #d5818c; }
 .profile-field-help { margin: 6px 0 0; color: #9095a0; font-size: 11px; line-height: 1.65; }
 .profile-field-error { margin: 7px 0 0; color: #ae3346; font-size: 12px; line-height: 1.55; }
+.profile-field.is-disabled { opacity: .55; }
+.profile-field.is-disabled select { background: #f4f5f8; cursor: not-allowed; }
+.education-block { padding: 16px; border: 1px solid #eef0f5; border-radius: 10px; background: #fbfcfe; }
+.education-label { display: block; margin-bottom: 12px; color: #111827; font-size: 13px; font-weight: 700; }
+.education-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 17px 20px; }
+@media (max-width: 800px) { .education-grid { grid-template-columns: minmax(0, 1fr); } }
 .profile-form-section { margin-top: 25px; }
 .profile-form-section > h2 { margin: 0 0 14px; font-size: 19px; font-weight: 700; }
 .profile-form-section > .profile-field-help { margin-top: -6px; margin-bottom: 12px; }

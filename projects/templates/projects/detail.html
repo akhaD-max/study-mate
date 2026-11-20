@@ -39,7 +39,22 @@
             {% for role in roles %}
             <div class="pg-role-row">
                 <div>
+                    {% if role.description or role.required_skills.all %}
+                    <details class="pg-role-details">
+                        <summary><strong>{{ role.name }}</strong><span class="pg-role-toggle" aria-hidden="true"></span></summary>
+                        <div class="pg-role-requirements">
+                            <p class="pg-role-requirements-title">Требования к роли</p>
+                            {% if role.description %}<p class="pg-role-description">{{ role.description }}</p>{% endif %}
+                            {% if role.required_skills.all %}
+                            <ul class="pg-role-skills">
+                                {% for skill in role.required_skills.all %}<li>{{ skill.name }}</li>{% endfor %}
+                            </ul>
+                            {% endif %}
+                        </div>
+                    </details>
+                    {% else %}
                     <strong>{{ role.name }}</strong>
+                    {% endif %}
                     <p class="pg-row-date">Занято {{ role.occupied_places }}/{{ role.capacity }} · Свободно: {{ role.free_places }}</p>
                 </div>
                 {% if role.is_available %}

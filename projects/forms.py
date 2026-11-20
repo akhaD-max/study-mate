@@ -88,6 +88,16 @@ class RoleSkillsField(forms.ModelMultipleChoiceField):
 
 
 class RoleSkillsForm(forms.Form):
+    description = forms.CharField(
+        label="Требования к роли",
+        required=False,
+        max_length=1000,
+        widget=forms.Textarea(attrs={"rows": 4}),
+        help_text=(
+            "Коротко опишите, что должен уметь участник этой роли. "
+            "Текст раскрывается на странице проекта рядом с названием роли."
+        ),
+    )
     required_skills = RoleSkillsField(
         label="Обязательные навыки",
         queryset=Skill.objects.none(),
@@ -110,7 +120,7 @@ class RoleSkillsForm(forms.Form):
 
 
 class ProjectRoleForm(RoleSkillsForm):
-    field_order = ("name", "capacity", "required_skills")
+    field_order = ("name", "capacity", "description", "required_skills")
     name = forms.CharField(label="Название роли", max_length=100)
     capacity = forms.IntegerField(label="Количество мест", min_value=1, max_value=20)
 

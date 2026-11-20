@@ -88,6 +88,33 @@ class Specialization(models.Model):
         return self.name
 
 
+class EducationStatus(models.TextChoices):
+    STUDYING = "studying", "Обучаюсь"
+    GRADUATED = "graduated", "Закончил обучение"
+
+
+class EducationLevel(models.TextChoices):
+    BACHELOR = "bachelor", "Бакалавриат"
+    SPECIALIST = "specialist", "Специалитет"
+    MASTER = "master", "Магистратура"
+    POSTGRADUATE = "postgraduate", "Аспирантура"
+
+
+# У каждого уровня образования свой набор курсов.
+EDUCATION_COURSE_LIMITS: dict[str, int] = {
+    EducationLevel.BACHELOR.value: 4,
+    EducationLevel.SPECIALIST.value: 5,
+    EducationLevel.MASTER.value: 2,
+    EducationLevel.POSTGRADUATE.value: 3,
+}
+
+
+def education_courses(level: str) -> range:
+    """Вернуть допустимые курсы для уровня образования (пусто без уровня)."""
+    limit = EDUCATION_COURSE_LIMITS.get(level or "")
+    return range(1, limit + 1) if limit else range(1, 1)
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField("email", unique=True)
@@ -100,8 +127,21 @@ class User(AbstractBaseUser, PermissionsMixin):
         "Курс",
         null=True,
         blank=True,
-        choices=[(number, str(number)) for number in range(1, 7)],
         validators=[MinValueValidator(1), MaxValueValidator(6)],
+    )
+    education_status = models.CharField(
+        "Статус обучения",
+        max_length=20,
+        choices=EducationStatus.choices,
+        blank=True,
+        default="",
+    )
+    education_level = models.CharField(
+        "Уровень образования",
+        max_length=20,
+        choices=EducationLevel.choices,
+        blank=True,
+        default="",
     )
     bio = models.TextField("О себе", max_length=1000, blank=True, default="")
     desired_role = models.ForeignKey(
@@ -139,6 +179,22 @@ class User(AbstractBaseUser, PermissionsMixin):
                 | models.Q(course__range=(1, 6)),
                 name="accounts_user_course_range",
             ),
+            models.CheckConstraint(
+                condition=models.Q(education_status__in=["", "studying", "graduated"]),
+                name="accounts_user_education_status_valid",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    education_level__in=[
+                        "",
+                        "bachelor",
+                        "specialist",
+                        "master",
+                        "postgraduate",
+                    ]
+                ),
+                name="accounts_user_education_level_valid",
+            ),
         ]
 
     def __str__(self):
@@ -153,3 +209,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.get_full_name()
+
+    def education_summary(self):
+        """Текст о статусе обучения для профиля."""
+        if not self.education_status:
+            return ""
+        parts = [self.get_education_status_display()]
+        if self.education_level:
+            parts.append(self.get_education_level_display().lower())
+        if self.education_status == EducationStatus.STUDYING and self.course:
+            parts.append(f"{self.course} курс")
+        return " · ".join(parts)

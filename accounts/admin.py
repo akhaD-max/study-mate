@@ -49,6 +49,8 @@ class UserAdmin(BaseUserAdmin):
                     "full_name",
                     "university",
                     "specialty",
+                    "education_status",
+                    "education_level",
                     "course",
                     "bio",
                     "desired_role",
