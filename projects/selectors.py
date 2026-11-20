@@ -18,7 +18,8 @@ def get_project(project_id):
 
 
 def list_roles(project_id):
-    return ProjectRole.objects.filter(project_id=project_id).select_related("project").with_occupancy()
+    return (ProjectRole.objects.filter(project_id=project_id).select_related("project")
+            .with_occupancy().prefetch_related("required_skills"))
 
 
 def list_catalog_role_names():

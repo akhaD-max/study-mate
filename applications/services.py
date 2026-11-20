@@ -59,13 +59,41 @@ def list_my_applications(user):
     ).order_by("-created_at", "-pk")
 
 
+def skill_match(candidate_skills, required_skills):
+    """Сравнить уникальные навыки по UUID, округляя только итоговый процент."""
+    candidate = {skill.pk: skill for skill in candidate_skills}
+    required = {skill.pk: skill for skill in required_skills}
+    matched = candidate.keys() & required.keys()
+
+    def ordered(ids, source):
+        skills = (source[skill_id] for skill_id in ids)
+        return [{"id": skill.pk, "name": skill.name} for skill in sorted(
+            skills, key=lambda skill: (skill.name, str(skill.pk)),
+        )]
+
+    count = len(required)
+    return {
+        "match_percent": (200 * len(matched) + count) // (2 * count) if count else None,
+        "matched_count": len(matched), "required_count": count,
+        "matched_skills": ordered(matched, required),
+        "missing_skills": ordered(required.keys() - candidate.keys(), required),
+        "extra_skills": ordered(candidate.keys() - required.keys(), candidate),
+        "candidate_has_skills": bool(candidate),
+    }
+
+
 def list_project_applications(*, user, project_id):
     project = get_object_or_404(Project, pk=project_id)
     if not user.is_authenticated or project.author_id != user.pk:
         raise PermissionDenied("Управлять заявками может только руководитель проекта.")
-    return project, project.applications.select_related("user", "role").order_by(
-        "-created_at", "-pk",
-    )
+    applications = list(project.applications.select_related("user", "role").prefetch_related(
+        "user__skills", "role__required_skills",
+    ).order_by("-created_at", "-pk"))
+    for application in applications:
+        application.skill_match = skill_match(
+            application.user.skills.all(), application.role.required_skills.all(),
+        )
+    return project, applications
 
 
 def review_application(*, user, application_id, accept):

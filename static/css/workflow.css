@@ -33,3 +33,62 @@
 .apply-page { max-width: 650px; }
 @media (max-width: 900px) { .catalog-header-inner { flex-wrap: wrap; } .catalog-header nav { flex-wrap: wrap; gap: 12px 18px; } .detail-grid { grid-template-columns: 1fr; } }
 @media (max-width: 560px) { .workflow-main { padding: 24px 16px 48px; } .panel { padding: 22px; } .role-row { align-items: start; flex-direction: column; } }
+
+/* Входящие заявки руководителя */
+.incoming-context { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.incoming-context .back-link { color: #6b7280; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.incoming-project-status { border-radius: 100px; background: #dbeafe; color: #1754fe; padding: 6px 12px; font-size: 12px; font-weight: 700; }
+.incoming-hero { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 28px; padding: 36px 32px; border-radius: 24px; background-color: #1754fe; background-image: linear-gradient(#ffffff1f 1px, transparent 1px), linear-gradient(90deg, #ffffff1f 1px, transparent 1px); background-size: 28px 28px; color: white; }
+.incoming-hero h1 { margin: 0 0 10px; font-size: clamp(30px, 4vw, 40px); line-height: 1.15; letter-spacing: -.035em; }
+.incoming-hero p { max-width: 720px; margin: 0; color: #dbeafe; line-height: 1.6; overflow-wrap: anywhere; }
+.incoming-spark { color: #dcfa4f; font-size: 36px; line-height: 1; }
+.incoming-dashboard { overflow: hidden; border: 1px solid #e5e7eb; border-radius: 28px; background: #fff; box-shadow: 0 1px 3px #0000000a; }
+.incoming-filters { display: flex; flex-wrap: wrap; gap: 8px; padding: 16px 24px; background: #f4f7fa; border-bottom: 1px solid #edf0f3; }
+.incoming-filters a { padding: 9px 17px; border-radius: 100px; color: #566172; font-size: 14px; font-weight: 600; }
+.incoming-filters a:hover { background: white; }
+.incoming-filters a.is-active { color: #111827; background: #dcfa4f; }
+.incoming-card { display: flex; align-items: flex-start; justify-content: space-between; gap: 28px; padding: 32px; border-bottom: 1px solid #f0f1f3; }
+.incoming-card:last-child { border-bottom: 0; }
+.incoming-card-main { flex: 1; min-width: 0; }
+.incoming-card-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.incoming-card h2 { margin: 0; font-size: 23px; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.incoming-card h2 a:hover { color: #1754fe; }
+.incoming-status { border-radius: 100px; padding: 5px 13px; font-size: 12px; font-weight: 600; }
+.incoming-status-pending { background: #ecf2fe; color: #2557e8; }
+.incoming-status-accepted { background: #e7f8ce; color: #2c7a00; }
+.incoming-status-rejected { background: #feebe9; color: #b91c1c; }
+.incoming-meta { margin: 10px 0; color: #6b7280; font-size: 14px; overflow-wrap: anywhere; }
+.incoming-meta strong { color: #374151; }
+.incoming-letter { margin: 16px 0; padding: 16px; border: 1px solid #f0f1f3; border-radius: 16px; background: #f9fafb; color: #374151; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.incoming-letter strong { color: #111827; }
+.incoming-letter p { margin: 4px 0 0; }
+.incoming-match { margin-top: 16px; padding: 17px; border: 1px solid #dce5f6; border-radius: 16px; background: #f8faff; }
+.incoming-match-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.incoming-match h3 { margin: 0; font-size: 15px; }
+.incoming-match-heading strong { color: #1754fe; font-size: 14px; }
+.incoming-match > p { margin: 9px 0 0; color: #647084; font-size: 13px; }
+.incoming-skill-group { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin-top: 12px; font-size: 13px; }
+.incoming-skill-group > span { color: #647084; font-weight: 600; }
+.incoming-skill-group ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.incoming-skill-group li { padding: 4px 9px; border-radius: 8px; background: #e9eef8; overflow-wrap: anywhere; }
+.incoming-skill-group .skill-matched { background: #e7f8ce; color: #2c670c; }
+.incoming-skill-group .skill-missing { background: #fff0eb; color: #9a3b25; }
+.incoming-card-actions { display: flex; flex: 0 0 240px; flex-direction: column; align-items: flex-end; gap: 14px; }
+.incoming-card-actions p { margin: 0; color: #8a94a3; font-size: 12px; }
+.incoming-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.incoming-buttons button { padding: 11px 18px; border: 1px solid transparent; border-radius: 12px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.incoming-accept { background: #1754fe; color: white; }
+.incoming-accept:hover { background: #1246db; }
+.incoming-buttons .incoming-reject { background: white; border-color: #d1d5db; color: #374151; }
+.incoming-reject:hover { background: #fff1f2; color: #b91c1c; }
+.incoming-profile { color: #1754fe; font-size: 13px; font-weight: 700; }
+.incoming-profile:hover { text-decoration: underline; }
+.incoming-team { padding: 5px 10px; border-radius: 6px; background: #ecfdf5; color: #047857; font-size: 12px; font-weight: 700; }
+.incoming-empty { padding: 48px 24px; text-align: center; }
+.incoming-empty h2 { margin: 0 0 10px; font-size: 22px; }
+.incoming-empty p { margin: 0; color: #647084; }
+.incoming-empty a { color: #1754fe; font-weight: 600; }
+.role-fields input[type=checkbox] { width: auto; margin-right: 8px; }
+.role-fields label { display: inline-flex; align-items: center; padding: 4px 0; }
+@media (max-width: 800px) { .incoming-card { flex-direction: column; } .incoming-card-actions { flex: auto; align-items: flex-start; } }
+@media (max-width: 560px) { .incoming-card { padding: 22px 18px; } .incoming-hero { padding: 26px 20px; } .incoming-spark { display: none; } .incoming-filters { padding: 14px; } .incoming-filters a { font-size: 12px; padding: 8px 12px; } }

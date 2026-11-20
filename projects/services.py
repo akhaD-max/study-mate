@@ -5,6 +5,16 @@ from .forms import ProjectCreateForm, ProjectRoleFormSet
 from .models import Project, ProjectRole
 
 
+def set_role_skills(*, user, role, skills):
+    """Заменить требования одной роли, не затрагивая заявки и места."""
+    with transaction.atomic():
+        project = Project.objects.select_for_update().get(pk=role.project_id)
+        if not user.is_authenticated or project.author_id != user.pk:
+            raise PermissionDenied("Изменять требования может только руководитель проекта.")
+        locked_role = ProjectRole.objects.select_for_update().get(pk=role.pk, project=project)
+        locked_role.required_skills.set(skills)
+
+
 def create_project(*, author, title, description, category_id, roles) -> Project:
     """Проверить данные и атомарно опубликовать проект со всеми ролями."""
     if not author.is_authenticated or author.pk is None:
@@ -14,7 +24,10 @@ def create_project(*, author, title, description, category_id, roles) -> Project
     })
     data = {"roles-TOTAL_FORMS": len(roles), "roles-INITIAL_FORMS": 0}
     for index, role in enumerate(roles):
-        data.update({f"roles-{index}-{key}": value for key, value in role.items()})
+        for key, value in role.items():
+            if key == "required_skills":
+                value = [str(getattr(skill, "pk", skill)) for skill in value]
+            data[f"roles-{index}-{key}"] = value
     formset = ProjectRoleFormSet(data)
     valid_project = form.is_valid()
     valid_roles = formset.is_valid()
@@ -36,7 +49,10 @@ def create_project(*, author, title, description, category_id, roles) -> Project
             )
             for role_form in formset:
                 if role_form.cleaned_data:
-                    ProjectRole.objects.create(project=project, **role_form.cleaned_data)
+                    role_data = role_form.cleaned_data.copy()
+                    skills = role_data.pop("required_skills")
+                    role = ProjectRole.objects.create(project=project, **role_data)
+                    role.required_skills.set(skills)
             return project
     except IntegrityError as error:
         diag = getattr(error.__cause__, "diag", None)

@@ -1,6 +1,9 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.forms import BaseFormSet, formset_factory
+
+from accounts.models import Skill
 
 from .models import Category
 from .selectors import list_categories
@@ -67,9 +70,39 @@ class ProjectCreateForm(forms.Form):
         self.fields["category_id"].queryset = list_categories()
 
 
+class RoleSkillsField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, skill):
+        return f"{skill.name} — {skill.get_category_display()}" + (
+            " (Неактивен)" if not skill.is_active else ""
+        )
+
+
 class ProjectRoleForm(forms.Form):
     name = forms.CharField(label="Название роли", max_length=100)
     capacity = forms.IntegerField(label="Количество мест", min_value=1, max_value=20)
+    required_skills = RoleSkillsField(
+        label="Требуемые навыки", queryset=Skill.objects.none(), required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["required_skills"].queryset = Skill.objects.filter(is_active=True)
+
+
+class RoleSkillsForm(forms.Form):
+    required_skills = RoleSkillsField(
+        label="Требуемые навыки", queryset=Skill.objects.none(), required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+
+    def __init__(self, *args, role, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["required_skills"].queryset = Skill.objects.filter(
+            Q(is_active=True) | Q(project_roles=role)
+        ).distinct().order_by("name", "pk")
+        if not self.is_bound:
+            self.initial["required_skills"] = role.required_skills.all()
 
 
 class BaseProjectRoleFormSet(BaseFormSet):

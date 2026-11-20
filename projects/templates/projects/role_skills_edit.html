@@ -1,0 +1,16 @@
+{% extends "workflow.html" %}
+{% block title %}Требования роли — StudyMate{% endblock %}
+{% block workflow_content %}
+<a class="back-link" href="{% url 'projects:detail' project.id %}">← {{ project.title }}</a>
+<div class="workflow-heading"><h1>Требования роли</h1><p>{{ role.name }} · Выберите навыки, необходимые для этой роли.</p></div>
+<form class="panel project-form" method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <fieldset class="role-fields"><legend>Требуемые навыки</legend>
+        <p class="muted">Можно оставить список пустым. Сохранённые неактивные навыки учитываются, пока вы их не снимете.</p>
+        {{ form.required_skills.errors }}
+        {{ form.required_skills }}
+    </fieldset>
+    <div class="actions"><button class="action" type="submit">Сохранить</button><a class="action secondary" href="{% url 'projects:detail' project.id %}">Отмена</a></div>
+</form>
+{% endblock %}

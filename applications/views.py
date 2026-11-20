@@ -85,13 +85,27 @@ def mine(request):
     )
 
 
+def incoming_context(request, project_id):
+    project, applications = list_project_applications(user=request.user, project_id=project_id)
+    counts = {"all": len(applications), "pending": 0, "accepted": 0, "rejected": 0}
+    for application in applications:
+        counts[application.status] += 1
+    status = request.GET.get("status", "all")
+    if status not in counts:
+        status = "all"
+    return {
+        "project": project,
+        "applications": applications if status == "all" else [
+            application for application in applications if application.status == status
+        ],
+        "counts": counts, "active_status": status,
+    }
+
+
 @session_required
 @require_GET
 def incoming(request, project_id):
-    project, applications = list_project_applications(user=request.user, project_id=project_id)
-    return render(request, "applications/incoming.html", {
-        "project": project, "applications": applications,
-    })
+    return render(request, "applications/incoming.html", incoming_context(request, project_id))
 
 
 @session_required
@@ -103,12 +117,9 @@ def review(request, application_id, accept):
         )
     except ValidationError as error:
         candidate = get_object_or_404(Application, pk=application_id)
-        project, applications = list_project_applications(
-            user=request.user, project_id=candidate.project_id,
-        )
-        return render(request, "applications/incoming.html", {
-            "project": project, "applications": applications, "errors": error.messages,
-        })
+        context = incoming_context(request, candidate.project_id)
+        context["errors"] = error.messages
+        return render(request, "applications/incoming.html", context)
     return redirect("applications:incoming", project_id=application.project_id)
 
 

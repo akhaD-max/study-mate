@@ -41,6 +41,8 @@
                 <div>
                     <strong>{{ role.name }}</strong>
                     <p class="pg-row-date">Занято {{ role.occupied_places }}/{{ role.capacity }} · Свободно: {{ role.free_places }}</p>
+                    <p class="pg-row-date">Навыки: {% for skill in role.required_skills.all %}{{ skill.name }}{% if not forloop.last %}, {% endif %}{% empty %}Навыки не заданы{% endfor %}</p>
+                    {% if is_owner %}<a class="pg-back-link" href="{% url 'projects:edit_role_skills' project.id role.id %}">Изменить требования</a>{% endif %}
                 </div>
                 {% if role.is_available %}
                     <span class="pg-badge pg-badge-open">Набор открыт</span>

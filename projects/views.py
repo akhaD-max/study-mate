@@ -1,8 +1,8 @@
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db.models import Count, Prefetch, Q
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
@@ -10,15 +10,20 @@ from applications.forms import ApplicationForm
 from applications.models import Application
 from applications.services import application_block_reason
 
-from .forms import CatalogFilterForm, ProjectCreateForm, ProjectRoleFormSet
-from .models import Category, Project, ProjectMember
+from .forms import (
+    CatalogFilterForm,
+    ProjectCreateForm,
+    ProjectRoleFormSet,
+    RoleSkillsForm,
+)
+from .models import Category, Project, ProjectMember, ProjectRole
 from .selectors import (
     catalog_projects,
     get_project,
     list_catalog_role_names,
     list_roles,
 )
-from .services import create_project
+from .services import create_project, set_role_skills
 
 
 def plural_ru(number, one, few, many):
@@ -178,6 +183,22 @@ def create(request):
         # HTMX заменяет только набор ролей, не перерисовывая страницу целиком.
         template = "projects/partials/role_formset.html"
     return render(request, template, context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def edit_role_skills(request, project_id, role_id):
+    project = get_project(project_id)
+    role = get_object_or_404(ProjectRole, pk=role_id, project=project)
+    if project.author_id != request.user.pk:
+        raise PermissionDenied("Изменять требования может только руководитель проекта.")
+    form = RoleSkillsForm(request.POST if request.method == "POST" else None, role=role)
+    if request.method == "POST" and form.is_valid():
+        set_role_skills(user=request.user, role=role, skills=form.cleaned_data["required_skills"])
+        return redirect("projects:detail", project_id=project.pk)
+    return render(request, "projects/role_skills_edit.html", {
+        "project": project, "role": role, "form": form,
+    })
 
 
 @login_required
