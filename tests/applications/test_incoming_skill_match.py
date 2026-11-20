@@ -66,14 +66,27 @@ class IncomingSkillMatchTests(TestCase):
         # Для заявки на рассмотрении подписи «по текущим навыкам» ещё нет.
         self.assertNotContains(response, "По текущим навыкам и требованиям роли")
 
-    def test_skill_lists_are_collapsed_by_default(self):
-        # По умолчанию видны только процент и количество, списки раскрывает
-        # руководитель: каждое <details> без open.
+    def test_matched_and_missing_are_visible_extra_skills_collapsed(self):
+        # Совпавшие и недостающие навыки видны сразу, дополнительные — только
+        # после раскрытия. Единственный <details> — группа дополнительных.
+        self.candidate.skills.add(self.soft)
         response = self.page()
         html = response.content.decode()
-        self.assertEqual(html.count('<details class="in-skill-group">'), 2)
+        # Кроме меню пользователя в шапке других раскрывашек нет.
+        self.assertEqual(html.count("<details"), 2)
         self.assertNotIn('<details class="in-skill-group" open', html)
-        self.assertContains(response, 'in-skill-toggle')
+        self.assertIn('class="in-skill-group in-skill-extra"', html)
+        matched_block = html.split("Совпадают", 1)[1].split("</div>", 1)[0]
+        self.assertIn("Python", matched_block)
+        missing_block = html.split("Не хватает", 1)[1].split("</div>", 1)[0]
+        self.assertIn("Figma", missing_block)
+
+    def test_template_comment_is_not_rendered(self):
+        # Многострочный {# #} Django не поддерживает — текст утекал в HTML.
+        response = self.page()
+        self.assertNotContains(response, "Навыки скрыты по умолчанию")
+        self.assertNotContains(response, "работает без JS")
+        self.assertNotContains(response, "{#")
 
     def test_extra_skills_are_shown_without_changing_percent(self):
         self.candidate.skills.add(self.soft)
@@ -81,9 +94,6 @@ class IncomingSkillMatchTests(TestCase):
         self.assertContains(response, "75% · совпало 3 из 4 навыков")
         self.assertContains(response, "Дополнительные навыки")
         self.assertContains(response, "Коммуникация")
-        self.assertEqual(
-            response.content.decode().count('<details class="in-skill-group">'), 3,
-        )
 
     def test_neighbour_role_requirements_do_not_affect_result(self):
         # Требование соседней роли (Коммуникация) не входит в расчёт по Backend.
