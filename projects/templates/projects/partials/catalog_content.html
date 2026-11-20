@@ -12,6 +12,14 @@
                 <a class="catalog-create" href="{% url 'projects:create' %}">Создать проект</a>
             </div>
             {% for error in filter_errors.q %}<p class="catalog-field-error" id="error-q" role="alert" data-field="q">{{ error }}</p>{% endfor %}
+            <div class="catalog-selected-filters" role="group" aria-label="Текущие выбранные фильтры">
+                <div class="catalog-filter-chips" role="list">
+                    {% for filter in active_filters %}
+                        <span class="catalog-filter-chip{% if filter.is_status %} catalog-filter-chip-status{% endif %}" role="listitem">{{ filter.label }}</span>
+                    {% endfor %}
+                </div>
+                {% if has_filters %}<a class="catalog-reset-all" href="{% url 'projects:catalog' %}" hx-get="{% url 'projects:catalog' %}" hx-target="#catalog-content" hx-swap="outerHTML" hx-push-url="true">Сбросить всё</a>{% endif %}
+            </div>
         </div>
         <div class="catalog-layout">
             <aside class="catalog-filter-panel" aria-labelledby="filters-title">

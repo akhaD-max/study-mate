@@ -61,6 +61,24 @@ class CatalogRenderingTests(SimpleTestCase):
         self.assertContains(response, "Python — свободных мест: 2")
         self.assertNotContains(response, "Проект <script>")
 
+    def test_selected_filters_render_bordered_chips_and_reset_action(self):
+        response = self.client.get(
+            self.url,
+            {"direction": "science", "q": "робот", "role": "Дизайнер", "open_only": "false"},
+        )
+        self.assertContains(response, 'class="catalog-selected-filters"')
+        self.assertContains(response, "Поиск: робот")
+        self.assertContains(response, "Направление: science")
+        self.assertContains(response, "Роль: Дизайнер")
+        self.assertContains(response, "Все проекты")
+        self.assertContains(response, "Сбросить всё")
+        self.assertContains(response, 'class="catalog-filter-chip')
+
+    def test_default_open_filter_is_visible_below_search(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "Набор открыт")
+        self.assertContains(response, 'class="catalog-filter-chip catalog-filter-chip-status"')
+
     def test_filters_and_invalid_sort(self):
         response = self.client.get(
             self.url, {"direction": "science", "q": "робот", "sort": "invalid"}

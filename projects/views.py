@@ -102,6 +102,21 @@ def catalog(request):
     selected_open_only = values.get(
         "open_only", raw_open_only != "false" if raw_open_only is not None else True
     )
+    active_filters = []
+    if search_query:
+        active_filters.append({"label": f"Поиск: {search_query}"})
+    if selected_direction:
+        direction_label = next(
+            (category.name for category in categories if category.slug == selected_direction),
+            selected_direction,
+        )
+        active_filters.append({"label": f"Направление: {direction_label}"})
+    if selected_role:
+        active_filters.append({"label": f"Роль: {selected_role}"})
+    active_filters.append({
+        "label": "Набор открыт" if selected_open_only else "Все проекты",
+        "is_status": True,
+    })
     # «Нет данных» и «нет совпадений» различаются только смысловыми условиями:
     # page, sort и неизвестные параметры не превращают пустую базу в пустую выдачу.
     has_filters = bool(search_query or selected_direction or selected_role) or (
@@ -126,6 +141,7 @@ def catalog(request):
         "search_query": search_query,
         "sort": values.get("sort", "newest"),
         "open_only": selected_open_only,
+        "active_filters": active_filters,
         "has_filters": has_filters,
     }
     template = "projects/catalog.html"
