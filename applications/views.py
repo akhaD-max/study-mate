@@ -85,13 +85,41 @@ def mine(request):
     )
 
 
+def incoming_context(request, project_id, errors=None):
+    """Контекст «Входящих заявок»: заявки с совместимостью, счётчики и фильтр.
+
+    Фильтр по статусу выбирается ссылками-табами и не меняет порядок выдачи:
+    контракт Sprint 8 оставляет «новые сначала». Неизвестное значение статуса
+    показывает все заявки, чтобы сохранённая ссылка не открывала пустой экран.
+    """
+    project, applications = list_project_applications(
+        user=request.user, project_id=project_id,
+    )
+    counts = {"all": len(applications), "pending": 0, "accepted": 0, "rejected": 0}
+    for application in applications:
+        counts[application.status] = counts.get(application.status, 0) + 1
+    status = request.GET.get("status", "all")
+    if status not in ("pending", "accepted", "rejected"):
+        status = "all"
+    visible = applications if status == "all" else [
+        application for application in applications if application.status == status
+    ]
+    context = {
+        "project": project,
+        "applications": visible,
+        "counts": counts,
+        "active_status": status,
+        "filter_active": status != "all",
+    }
+    if errors:
+        context["errors"] = errors
+    return context
+
+
 @session_required
 @require_GET
 def incoming(request, project_id):
-    project, applications = list_project_applications(user=request.user, project_id=project_id)
-    return render(request, "applications/incoming.html", {
-        "project": project, "applications": applications,
-    })
+    return render(request, "applications/incoming.html", incoming_context(request, project_id))
 
 
 @session_required
@@ -103,12 +131,11 @@ def review(request, application_id, accept):
         )
     except ValidationError as error:
         candidate = get_object_or_404(Application, pk=application_id)
-        project, applications = list_project_applications(
-            user=request.user, project_id=candidate.project_id,
+        return render(
+            request,
+            "applications/incoming.html",
+            incoming_context(request, candidate.project_id, errors=error.messages),
         )
-        return render(request, "applications/incoming.html", {
-            "project": project, "applications": applications, "errors": error.messages,
-        })
     return redirect("applications:incoming", project_id=application.project_id)
 
 

@@ -14,6 +14,8 @@
 .role-row { display: flex; justify-content: space-between; gap: 16px; padding: 16px 0; border-top: 1px solid #e5e7eb; align-items: center; }
 .role-row p { margin-bottom: 0; }
 .status { display: inline-block; background: #edf1ff; color: #1648ff; border-radius: 100px; padding: 7px 12px; font-size: 12px; font-weight: 700; }
+.status-accepted { background: #e7f8ce; color: #2c7a00; }
+.status-rejected { background: #feebe9; color: #b3261e; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 20px; }
 .action { display: inline-flex; justify-content: center; align-items: center; min-height: 46px; padding: 12px 22px; border: 1px solid #1648ff; border-radius: 100px; background: #1648ff; color: white; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 .action:hover { background: #123cd5; }
@@ -33,3 +35,20 @@
 .apply-page { max-width: 650px; }
 @media (max-width: 900px) { .catalog-header-inner { flex-wrap: wrap; } .catalog-header nav { flex-wrap: wrap; gap: 12px 18px; } .detail-grid { grid-template-columns: 1fr; } }
 @media (max-width: 560px) { .workflow-main { padding: 24px 16px 48px; } .panel { padding: 22px; } .role-row { align-items: start; flex-direction: column; } }
+
+/* Совместимость навыков в карточке заявки (Sprint 8).
+   Блок отделён от письма кандидата рамкой, а группы навыков — цветной
+   подложкой, чтобы руководитель видел совпадения до нажатия «Принять». */
+.skill-match { margin: 20px 0; padding: 18px 20px; border: 1px solid #e0e4eb; border-radius: 18px; background: #fbfcfe; }
+.skill-match-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.skill-match-heading h3 { margin: 0; font-size: 15px; letter-spacing: -.01em; }
+.skill-match-score { margin: 0; padding: 4px 12px; border-radius: 100px; background: #edf1ff; color: #1648ff; font-size: 13px; font-weight: 700; }
+.skill-match-empty { background: #f1f2f5; color: #647084; }
+.skill-match-note { margin: 10px 0 0; color: #647084; font-size: 13px; }
+.skill-match-group { margin-top: 14px; }
+.skill-match-label { display: block; margin-bottom: 6px; color: #647084; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.skill-match-group ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.skill-match-group li { padding: 5px 12px; border: 1px solid #d9dee8; border-radius: 100px; background: white; font-size: 13px; overflow-wrap: anywhere; }
+.skill-match-group .skill-matched { border-color: #b6e3a4; background: #eefbe6; color: #2c6e18; }
+.skill-match-group .skill-missing { border-color: #f1c7c7; background: #fdf0f0; color: #a52121; }
+@media (max-width: 560px) { .skill-match { padding: 14px; } .skill-match-heading h3 { font-size: 14px; } }

@@ -103,6 +103,7 @@ def profile_detail(request, user_id):
             profile_user.university,
             profile_user.specialty,
             profile_user.course,
+            profile_user.education_status,
             profile_user.bio,
             profile_user.desired_role_id,
             profile_user.skills.all(),

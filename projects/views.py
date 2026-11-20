@@ -3,6 +3,8 @@ from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db.models import Count, Prefetch, Q
 from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils.http import urlencode
 from django.views.decorators.http import require_GET, require_http_methods
 from django.views.decorators.vary import vary_on_headers
 
@@ -75,6 +77,17 @@ def detail_context(user, project_id, form=None):
     }
 
 
+def catalog_href(params, catalog_url=None):
+    """Ссылка на каталог с параметрами без пустых значений и без page.
+
+    page не переносится намеренно: изменение условий начинает выдачу с первой
+    страницы. Пустые значения не отправляем, чтобы URL оставался коротким.
+    """
+    catalog_url = catalog_url or reverse("projects:catalog")
+    query = urlencode([(name, value) for name, value in params.items() if value])
+    return f"{catalog_url}?{query}" if query else catalog_url
+
+
 @require_GET
 @vary_on_headers("HX-Request", "HX-History-Restore-Request")
 def catalog(request):
@@ -112,6 +125,59 @@ def catalog(request):
     has_filters = bool(search_query or selected_direction or selected_role) or (
         raw_open_only == "false"
     )
+    sort_value = values.get("sort", "newest")
+    selected_category = next(
+        (category for category in categories if category.slug == selected_direction),
+        None,
+    )
+    sort_labels = {
+        "newest": "Сначала новые",
+        "oldest": "Сначала старые",
+        "members": "Больше участников",
+        "fewer_members": "Меньше участников",
+    }
+    # Только непустые условия попадают в ссылки: «?q=&role=» не нужен.
+    current_params = {
+        "q": search_query,
+        "direction": selected_direction,
+        "role": selected_role,
+        "open_only": "" if selected_open_only else "false",
+        "sort": "" if sort_value == "newest" else sort_value,
+    }
+    # Выбранные условия видны чипами под строкой поиска. Обычный чип снимает
+    # только своё условие и сохраняет остальные. Состояние набора показывается
+    # всегда, как фильтр по умолчанию, и переключается между «открыт» и «все».
+    direction_label = selected_category.name if selected_category else selected_direction
+    chip_specs = (
+        ("q", "Поиск", search_query),
+        ("direction", "Направление", direction_label),
+        ("role", "Роль", selected_role),
+        ("open_only", "Набор", "Открыт" if selected_open_only else "Все проекты"),
+        ("sort", "Сортировка", sort_labels.get(sort_value, "")),
+    )
+    active_filters = []
+    for key, label, value_label in chip_specs:
+        rest = {name: value for name, value in current_params.items() if name != key}
+        if key == "open_only":
+            # Клик по чипу переключает режим: иначе фильтр остался бы прежним.
+            rest["open_only"] = "" if selected_open_only else "false"
+            action = (
+                "Показать все проекты вместо «Набор: Открыт»"
+                if selected_open_only
+                else "Вернуть только проекты с открытым набором"
+            )
+        else:
+            if not current_params[key]:
+                continue
+            action = f"Убрать условие: {label} — {value_label}"
+        active_filters.append({
+            "key": key,
+            "label": label,
+            "value": value_label,
+            "is_default": key == "open_only" and selected_open_only,
+            "action": action,
+            "remove_url": catalog_href(rest),
+        })
     context = {
         "filter_form": form,
         "filter_errors": form.errors,
@@ -120,6 +186,8 @@ def catalog(request):
         "project_count": page.paginator.count,
         "categories": categories,
         "role_names": role_names,
+        "active_filters": active_filters,
+        "reset_url": catalog_href({}),
         "selected_direction": selected_direction,
         "selected_role": selected_role,
         "unknown_direction": selected_direction and not any(

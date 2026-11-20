@@ -286,6 +286,53 @@
     border-top: 1px solid #f0f2f7;
 }
 .pg-role-row strong { color: #111827; font-size: 14px; }
+.pg-role-details { margin-bottom: 2px; }
+.pg-role-details summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    list-style: none;
+    cursor: pointer;
+    border-radius: 6px;
+}
+.pg-role-details summary::-webkit-details-marker { display: none; }
+.pg-role-details summary:focus-visible { outline: 2px solid #2445ed55; outline-offset: 2px; }
+.pg-role-toggle {
+    position: relative;
+    flex: 0 0 auto;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #d5d9e2;
+    border-radius: 50%;
+    background: #fff;
+}
+.pg-role-toggle::before,
+.pg-role-toggle::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 7px;
+    height: 1.5px;
+    background: #4b5563;
+    transform: translate(-50%, -50%);
+    transition: opacity .15s ease;
+}
+.pg-role-toggle::after { transform: translate(-50%, -50%) rotate(90deg); }
+.pg-role-details[open] .pg-role-toggle::after { opacity: 0; }
+.pg-role-details summary:hover strong { color: #2445ed; }
+.pg-role-requirements {
+    margin: 8px 0 0 23px;
+    padding: 10px 12px;
+    border-left: 2px solid #dbe3ff;
+    border-radius: 0 8px 8px 0;
+    background: #f8faff;
+}
+.pg-role-requirements-title { margin: 0 0 4px; color: #6b7280; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+.pg-role-description { margin: 0 0 8px; color: #4b5563; font-size: 13px; line-height: 1.6; }
+.pg-role-description:last-child { margin-bottom: 0; }
+.pg-role-skills { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.pg-role-skills li { padding: 3px 9px; border-radius: 999px; background: #eaf0ff; color: #2445ed; font-size: 11px; }
 
 .pg-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .pg-stat-label { margin: 0 0 4px; color: #6b7280; font-size: 12px; }

@@ -12,6 +12,33 @@
                 <a class="catalog-create" href="{% url 'projects:create' %}">Создать проект</a>
             </div>
             {% for error in filter_errors.q %}<p class="catalog-field-error" id="error-q" role="alert" data-field="q">{{ error }}</p>{% endfor %}
+            {% comment %}Выбранные условия видны сразу под строкой поиска.
+            Чип убирает только своё условие, сброс возвращает каталог целиком.{% endcomment %}
+            {% if active_filters %}
+                <div class="catalog-active-filters" role="group" aria-label="Выбранные фильтры">
+                    <span class="catalog-active-filters-title">Выбрано:</span>
+                    {% for chip in active_filters %}
+                        <a class="catalog-filter-chip{% if chip.is_default %} catalog-filter-chip-default{% endif %}"
+                           href="{{ chip.remove_url }}"
+                           hx-get="{{ chip.remove_url }}" hx-target="#catalog-content"
+                           hx-swap="outerHTML" hx-push-url="true"
+                           aria-label="{{ chip.action }}">
+                            <span class="catalog-filter-chip-label">{{ chip.label }}:</span>
+                            <span class="catalog-filter-chip-value">{{ chip.value }}</span>
+                            {% if chip.is_default %}
+                                <span class="catalog-filter-chip-toggle" aria-hidden="true">⇄</span>
+                            {% else %}
+                                <span class="catalog-filter-chip-close" aria-hidden="true">✕</span>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                    {% if has_filters or sort != 'newest' %}
+                        <a class="catalog-active-filters-reset" href="{{ reset_url }}"
+                           hx-get="{{ reset_url }}" hx-target="#catalog-content"
+                           hx-swap="outerHTML" hx-push-url="true">Сбросить всё</a>
+                    {% endif %}
+                </div>
+            {% endif %}
         </div>
         <div class="catalog-layout">
             <aside class="catalog-filter-panel" aria-labelledby="filters-title">
@@ -64,7 +91,7 @@
                 {% for error in filter_errors.page %}<p class="catalog-field-error" role="alert" data-field="page">{{ error }}</p>{% endfor %}
                 <span id="catalog-loading" class="htmx-indicator" role="status">Обновляем каталог…</span>
                 {% if filter_errors %}
-                    <div class="catalog-empty" role="alert"><h3>Не удалось выполнить поиск</h3><p>Исправьте отмеченные поля и повторите запрос.</p></div>
+                    <div class="catalog-empty catalog-empty-error" role="alert"><h3>Не удалось выполнить поиск</h3><p>Исправьте отмеченные поля и повторите запрос.</p></div>
                 {% elif projects %}
                     <div class="catalog-grid">
                         {% for project in projects %}

@@ -15,7 +15,18 @@
             {% include "accounts/partials/profile_field.html" with field=form.full_name %}
             {% include "accounts/partials/profile_field.html" with field=form.desired_role %}
             {% include "accounts/partials/profile_field.html" with field=form.university %}
-            {% include "accounts/partials/profile_field.html" with field=form.course %}
+            <div class="profile-field profile-field-wide education-block">
+                <span class="education-label">Обучение</span>
+                <div class="education-grid">
+                    {% include "accounts/partials/profile_field.html" with field=form.education_status %}
+                    <div id="education-level-field">
+                        {% include "accounts/partials/profile_field.html" with field=form.education_level %}
+                    </div>
+                    <div id="course-field">
+                        {% include "accounts/partials/profile_field.html" with field=form.course %}
+                    </div>
+                </div>
+            </div>
             {% include "accounts/partials/profile_field.html" with field=form.specialty wide=True %}
         </div>
 

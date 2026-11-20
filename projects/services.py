@@ -39,7 +39,9 @@ def create_project(*, author, title, description, category_id, roles) -> Project
                 if role_form.cleaned_data:
                     role_data = role_form.cleaned_data
                     role = ProjectRole.objects.create(
-                        project=project, name=role_data["name"], capacity=role_data["capacity"],
+                        project=project, name=role_data["name"],
+                        capacity=role_data["capacity"],
+                        description=role_data.get("description", ""),
                     )
                     role.required_skills.set(role_data["required_skills"])
             return project

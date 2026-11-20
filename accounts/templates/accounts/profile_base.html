@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Профиль — StudyMate{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}">
+    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
     <link rel="stylesheet" href="{% static 'css/catalog.css' %}">
     <link rel="stylesheet" href="{% static 'css/profile.css' %}">
     <script src="{% static 'js/header-menu.js' %}" defer></script>
@@ -17,6 +18,6 @@
         {% for message in messages %}<p class="profile-notice" role="status">{{ message }}</p>{% endfor %}
         {% block profile_content %}{% endblock %}
     </main>
-    <footer class="profile-footer"><span>StudyMate · Профиль участника</span><a href="{% url 'projects:catalog' %}">Найти свою команду <span aria-hidden="true">↗</span></a></footer>
+    {% include "partials/site_footer.html" %}
 </body>
 </html>

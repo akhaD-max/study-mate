@@ -59,13 +59,66 @@ def list_my_applications(user):
     ).order_by("-created_at", "-pk")
 
 
+def skill_match(candidate_skills, required_skills):
+    """Совместимость профиля кандидата с требованиями конкретной роли.
+
+    Сравнение идёт по уникальным UUID навыков: пересечение — совпавшие,
+    «требования минус профиль» — отсутствующие, «профиль минус требования» —
+    дополнительные. Профессиональные и гибкие навыки весят одинаково.
+    Процент равен 100 × совпавших / обязательных; округляется только итог,
+    половина — вверх. Пустые требования дают match_percent=None, а не 0%:
+    это разные состояния интерфейса.
+    """
+    candidate = {skill.pk: skill for skill in candidate_skills}
+    required = {skill.pk: skill for skill in required_skills}
+    matched = candidate.keys() & required.keys()
+
+    def ordered(identifier_set, source):
+        # Устойчивый порядок по названию и UUID: списки не «прыгают»
+        # между запросами при одинаковых названиях навыков.
+        skills = (source[identifier] for identifier in identifier_set)
+        return [
+            {"id": skill.pk, "name": skill.name}
+            for skill in sorted(skills, key=lambda skill: (skill.name, str(skill.pk)))
+        ]
+
+    total_required = len(required)
+    return {
+        "match_percent": (
+            (200 * len(matched) + total_required) // (2 * total_required)
+            if total_required
+            else None
+        ),
+        "matched_count": len(matched),
+        "required_count": total_required,
+        "matched_skills": ordered(matched, required),
+        "missing_skills": ordered(required.keys() - candidate.keys(), required),
+        "extra_skills": ordered(candidate.keys() - required.keys(), candidate),
+        "candidate_has_skills": bool(candidate),
+    }
+
+
 def list_project_applications(*, user, project_id):
+    """Заявки проекта с посчитанной совместимостью навыков.
+
+    Навыки кандидатов и требования ролей загружаются пакетно: число запросов
+    не растёт с количеством заявок. Сбой загрузки не подменяется расчётом по
+    неполным данным — он пробрасывается как ошибка страницы.
+    """
     project = get_object_or_404(Project, pk=project_id)
     if not user.is_authenticated or project.author_id != user.pk:
         raise PermissionDenied("Управлять заявками может только руководитель проекта.")
-    return project, project.applications.select_related("user", "role").order_by(
-        "-created_at", "-pk",
+    applications = list(
+        project.applications.select_related("user", "role")
+        .prefetch_related("user__skills", "role__required_skills")
+        .order_by("-created_at", "-pk")
     )
+    for application in applications:
+        application.skill_match = skill_match(
+            application.user.skills.all(),
+            application.role.required_skills.all(),
+        )
+    return project, applications
 
 
 def review_application(*, user, application_id, accept):

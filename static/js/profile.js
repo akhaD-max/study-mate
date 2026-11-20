@@ -58,6 +58,56 @@
         document.getElementById("skill-search-empty").hidden = skillOptions.some((option) => !option.hidden);
     });
     renderSkills();
+
+    // Курс доступен только после выбора уровня образования, а сам уровень —
+    // только для тех, кто ещё учится. Набор курсов зависит от уровня.
+    const statusField = document.getElementById("id_education_status");
+    const levelField = document.getElementById("id_education_level");
+    const courseField = document.getElementById("id_course");
+    const courseLimits = { bachelor: 4, specialist: 5, master: 2, postgraduate: 3 };
+    const previous = { level: levelField ? levelField.value : "", course: courseField ? courseField.value : "" };
+    const setDisabled = (field, disabled) => {
+        field.disabled = disabled;
+        const wrapper = field.closest(".profile-field");
+        if (wrapper) wrapper.classList.toggle("is-disabled", disabled);
+    };
+    const renderCourses = () => {
+        const limit = courseLimits[levelField.value] || 0;
+        const keep = previous.course;
+        courseField.replaceChildren(new Option("Выберите курс", ""));
+        for (let number = 1; number <= limit; number += 1) {
+            courseField.append(new Option(String(number), String(number)));
+        }
+        setDisabled(courseField, limit === 0);
+        if (limit === 0) {
+            courseField.value = "";
+            return;
+        }
+        courseField.value = Number(keep) <= limit ? keep : "";
+    };
+    const renderEducation = () => {
+        const studying = statusField.value === "studying";
+        setDisabled(levelField, !studying);
+        if (!studying) {
+            previous.level = levelField.value === "" ? previous.level : levelField.value;
+            levelField.value = "";
+            previous.course = courseField.value || previous.course;
+            renderCourses();
+            return;
+        }
+        if (levelField.value) previous.level = levelField.value;
+        renderCourses();
+    };
+    if (statusField && levelField && courseField) {
+        statusField.addEventListener("change", renderEducation);
+        levelField.addEventListener("change", () => {
+            previous.course = "";
+            renderCourses();
+        });
+        setDisabled(levelField, statusField.value !== "studying");
+        renderCourses();
+    }
+
     const snapshot = () => JSON.stringify(
         Array.from(new FormData(form).entries())
             .filter(([name]) => name !== "csrfmiddlewaretoken")

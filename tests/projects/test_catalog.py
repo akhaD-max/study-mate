@@ -71,6 +71,33 @@ class CatalogRenderingTests(SimpleTestCase):
         self.assertContains(response, "Сбросить фильтры")
         self.assertContains(response, 'value="робот"')
 
+    def test_active_filters_show_selected_conditions_with_remove_links(self):
+        response = self.client.get(
+            self.url,
+            {"direction": "science", "role": "Backend", "q": "робот", "sort": "oldest"},
+        )
+        html = response.content.decode()
+        self.assertContains(response, 'class="catalog-active-filters"')
+        self.assertContains(response, "Поиск:")
+        self.assertContains(response, "Роль:")
+        self.assertContains(response, "Сортировка:")
+        # Название направления берётся из Category; в make-объекте его нет,
+        # поэтому проверяем слаг как запасной вариант подписи.
+        self.assertIn("Направление:", html)
+        # Чип поиска удаляет только q: остальные условия остаются в ссылке.
+        self.assertIn('href="/projects/?direction=science&amp;role=Backend&amp;sort=oldest"', html)
+        self.assertIn('hx-target="#catalog-content"', html)
+
+    def test_open_only_chip_toggles_recruitment_mode(self):
+        # Открытый набор — фильтр по умолчанию: он виден всегда и переключается.
+        response = self.client.get(self.url)
+        self.assertContains(response, "Набор:")
+        self.assertContains(response, "Открыт")
+        self.assertNotContains(response, "catalog-active-filters-reset")
+        toggled = self.client.get(self.url, {"open_only": "false"})
+        self.assertContains(toggled, "Все проекты")
+        self.assertContains(toggled, "Сбросить всё")
+
     def test_sort_modes_use_database_ordering(self):
         for sort, expected in (
             ("newest", ("-created_at", "pk")),

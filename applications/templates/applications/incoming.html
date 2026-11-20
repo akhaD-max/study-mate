@@ -1,13 +1,145 @@
 {% extends "workflow.html" %}
+{% load static %}
 {% block title %}Входящие заявки — StudyMate{% endblock %}
+{# block.super сохраняет catalog.css, workflow.css и pages.css из workflow.html. #}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/incoming.css' %}">{% endblock %}
 {% block workflow_content %}
-<a class="back-link" href="{% url 'projects:detail' project.id %}">← {{ project.title }}</a>
-<div class="workflow-heading"><p class="catalog-eyebrow">СОБИРАЕМ КОМАНДУ</p><h1>Входящие заявки.</h1><p>{{ project.title }}</p></div>
-<div class="stack">
-{% for application in applications %}
-<article class="panel"><span class="status">{{ application.get_status_display }}</span><h2><a href="{% url 'profiles:detail' application.user_id %}">{{ application.user.get_full_name }}</a></h2><p class="muted">{{ application.role.name }} · {{ application.created_at|date:"d.m.Y" }}</p><p class="prose">{{ application.comment }}</p>
-{% if application.status == 'pending' %}<div class="actions"><form method="post" action="{% url 'applications:accept' application.id %}">{% csrf_token %}<button class="action" type="submit">Принять</button></form><form method="post" action="{% url 'applications:reject' application.id %}">{% csrf_token %}<button class="action secondary" type="submit">Отклонить</button></form></div>{% endif %}
-</article>
-{% empty %}<div class="panel"><h2>Пока нет заявок.</h2><p class="muted">Когда кто-то откликнется, заявка появится здесь.</p></div>{% endfor %}
+<div class="in-context">
+    <a class="in-back" href="{% url 'projects:detail' project.id %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" aria-hidden="true"><path d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        <span>{{ project.title }}</span>
+    </a>
+    <span class="in-project-state in-project-state-{{ project.status }}">{{ project.get_status_display }}</span>
+</div>
+
+<section class="in-hero" aria-labelledby="incoming-title">
+    <div class="in-hero-copy">
+        <h1 id="incoming-title">Входящие заявки</h1>
+        <p>Следите за откликами и управляйте составом участников проекта «{{ project.title }}».</p>
+    </div>
+    <span class="in-hero-spark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0L14.2 8.8L23 11L14.2 13.2L12 22L9.8 13.2L1 11L9.8 8.8L12 0Z"></path></svg>
+    </span>
+</section>
+
+<div class="in-dashboard">
+    <nav class="in-filters" aria-label="Фильтр заявок по статусу">
+        <a class="in-tab{% if active_status == 'all' %} is-active{% endif %}" href="?status=all"{% if active_status == 'all' %} aria-current="page"{% endif %}>Все <span aria-hidden="true">·</span> {{ counts.all }}</a>
+        <a class="in-tab{% if active_status == 'pending' %} is-active{% endif %}" href="?status=pending"{% if active_status == 'pending' %} aria-current="page"{% endif %}>На рассмотрении <span aria-hidden="true">·</span> {{ counts.pending }}</a>
+        <a class="in-tab{% if active_status == 'accepted' %} is-active{% endif %}" href="?status=accepted"{% if active_status == 'accepted' %} aria-current="page"{% endif %}>Приняты <span aria-hidden="true">·</span> {{ counts.accepted }}</a>
+        <a class="in-tab{% if active_status == 'rejected' %} is-active{% endif %}" href="?status=rejected"{% if active_status == 'rejected' %} aria-current="page"{% endif %}>Отклонены <span aria-hidden="true">·</span> {{ counts.rejected }}</a>
+    </nav>
+
+    {% for application in applications %}
+    <article class="in-card" data-status="{{ application.status }}">
+        <div class="in-card-main">
+            <div class="in-card-heading">
+                <h2><a href="{% url 'profiles:detail' application.user_id %}">{{ application.user.get_full_name }}</a></h2>
+                <span class="in-status in-status-{{ application.status }}">{{ application.get_status_display }}</span>
+            </div>
+            <p class="in-meta">
+                <strong>{{ application.role.name }}</strong>
+                <span class="in-dot" aria-hidden="true">•</span>
+                <time datetime="{{ application.created_at|date:'Y-m-d' }}">Отправлена {{ application.created_at|date:"j E Y" }}</time>
+            </p>
+            {% if application.comment %}
+            <div class="in-letter">
+                <span class="in-letter-label">Сопроводительное письмо:</span>
+                <p>{{ application.comment|linebreaksbr }}</p>
+            </div>
+            {% endif %}
+
+            {# Блок совместимости: навыки кандидата против требований его роли. #}
+            <section class="in-match" aria-label="Совместимость по навыкам">
+                <div class="in-match-heading">
+                    <h3>Совместимость по навыкам</h3>
+                    {% if application.skill_match.match_percent != None %}
+                        <span class="in-match-score">{{ application.skill_match.match_percent }}% · совпало {{ application.skill_match.matched_count }} из {{ application.skill_match.required_count }} навыков</span>
+                    {% else %}
+                        <span class="in-match-score in-match-score-empty">Нет данных</span>
+                    {% endif %}
+                </div>
+                {% if application.skill_match.match_percent == None %}
+                    <p class="in-match-note">У роли не заданы требуемые навыки.</p>
+                {% elif not application.skill_match.candidate_has_skills %}
+                    <p class="in-match-note">Кандидат пока не указал навыки.</p>
+                {% endif %}
+                {% if application.status != 'pending' %}
+                    <p class="in-match-note">По текущим навыкам и требованиям роли</p>
+                {% endif %}
+                {% comment %}
+                    По умолчанию на карточке только процент. Навыки — двухуровневая
+                    раскрывашка: сначала «Подробности» (совпадают/не хватает),
+                    внутри неё отдельно раскрываются дополнительные навыки.
+                {% endcomment %}
+                {% with match=application.skill_match %}
+                {% if match.matched_skills or match.missing_skills or match.extra_skills %}
+                    <details class="in-skill-details">
+                        <summary class="in-skill-details-summary">
+                            <span>Подробности</span>
+                            <span class="in-skill-toggle" aria-hidden="true"></span>
+                        </summary>
+                        <div class="in-skill-body">
+                            {% if match.matched_skills %}
+                                <div class="in-skill-group">
+                                    <span class="in-skill-label">Совпадают <span class="in-skill-count">{{ match.matched_skills|length }}</span></span>
+                                    <ul>{% for skill in match.matched_skills %}<li class="in-skill-matched">{{ skill.name }}</li>{% endfor %}</ul>
+                                </div>
+                            {% endif %}
+                            {% if match.missing_skills %}
+                                <div class="in-skill-group">
+                                    <span class="in-skill-label">Не хватает <span class="in-skill-count">{{ match.missing_skills|length }}</span></span>
+                                    <ul>{% for skill in match.missing_skills %}<li class="in-skill-missing">{{ skill.name }}</li>{% endfor %}</ul>
+                                </div>
+                            {% endif %}
+                            {% if match.extra_skills %}
+                                <details class="in-skill-group in-skill-extra">
+                                    <summary class="in-skill-label">Дополнительные навыки <span class="in-skill-count">{{ match.extra_skills|length }}</span><span class="in-skill-toggle" aria-hidden="true"></span></summary>
+                                    <ul>{% for skill in match.extra_skills %}<li>{{ skill.name }}</li>{% endfor %}</ul>
+                                </details>
+                            {% endif %}
+                        </div>
+                    </details>
+                {% endif %}
+                {% endwith %}
+            </section>
+        </div>
+
+        <div class="in-card-side">
+            {% if application.status == 'pending' %}
+                <p class="in-side-note">Ожидает вашего решения</p>
+                <div class="in-actions">
+                    <form method="post" action="{% url 'applications:accept' application.id %}">{% csrf_token %}<button class="in-btn in-btn-accept" type="submit">Принять</button></form>
+                    <form method="post" action="{% url 'applications:reject' application.id %}">{% csrf_token %}<button class="in-btn in-btn-reject" type="submit">Отклонить</button></form>
+                </div>
+            {% elif application.status == 'accepted' %}
+                <span class="in-team-badge">В команде</span>
+                <p class="in-side-note">Кандидат добавлен в основной состав команды проекта.</p>
+            {% else %}
+                <span class="in-side-note in-side-note-muted">Архив заявок</span>
+                <a class="in-profile-link" href="{% url 'profiles:detail' application.user_id %}">
+                    <span>Профиль кандидата</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" aria-hidden="true"><path d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </a>
+            {% endif %}
+        </div>
+    </article>
+    {% empty %}
+    <div class="in-empty">
+        <div class="in-empty-card">
+            <span class="in-empty-bar{% if filter_active %} in-empty-bar-gray{% endif %}" aria-hidden="true"></span>
+            {% if filter_active %}
+                <h2>Здесь пусто</h2>
+                <p>Заявок с выбранным статусом нет. Попробуйте другой фильтр.</p>
+                <a class="in-profile-link" href="?status=all"><span>Показать все заявки</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" aria-hidden="true"><path d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </a>
+            {% else %}
+                <h2>Пока нет заявок</h2>
+                <p>Когда кто-то откликнется на свободную роль проекта, заявка появится здесь.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}
