@@ -1,0 +1,14 @@
+{% extends "workflow.html" %}
+{% block title %}Обязательные навыки роли — StudyMate{% endblock %}
+{% block workflow_content %}
+<a class="back-link" href="{% url 'projects:detail' project.id %}">← {{ project.title }}</a>
+<div class="workflow-heading">
+    <h1>Обязательные навыки</h1>
+    <p>{{ role.name }}</p>
+</div>
+<form class="panel project-form" method="post" action="{% url 'projects:edit_role_skills' project.id role.id %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="action" type="submit">Сохранить требования</button>
+</form>
+{% endblock %}

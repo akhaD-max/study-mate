@@ -1,6 +1,9 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from django.forms import BaseFormSet, formset_factory
+
+from accounts.models import Skill
 
 from .models import Category
 from .selectors import list_categories
@@ -67,7 +70,47 @@ class ProjectCreateForm(forms.Form):
         self.fields["category_id"].queryset = list_categories()
 
 
-class ProjectRoleForm(forms.Form):
+class RoleSkillsField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, skill):
+        return skill.name if skill.is_active else f"{skill.name} (Неактивен)"
+
+    def prepare_value(self, value):
+        values = super().prepare_value(value)
+        if isinstance(values, (list, tuple)):
+            return [self._normalize_uuid(item) for item in values]
+        return values
+
+    def _normalize_uuid(self, value):
+        try:
+            return str(Skill._meta.pk.to_python(value))
+        except ValidationError:
+            return value
+
+
+class RoleSkillsForm(forms.Form):
+    required_skills = RoleSkillsField(
+        label="Обязательные навыки",
+        queryset=Skill.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        error_messages={
+            "invalid_choice": "Выберите доступные навыки из справочника.",
+            "invalid_pk_value": "Выберите навыки из справочника.",
+        },
+    )
+
+    def __init__(self, *args, role=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        allowed = Q(is_active=True)
+        if role is not None:
+            selected = list(role.required_skills.values_list("pk", flat=True))
+            allowed |= Q(pk__in=selected)
+            self.initial.setdefault("required_skills", selected)
+        self.fields["required_skills"].queryset = Skill.objects.filter(allowed)
+
+
+class ProjectRoleForm(RoleSkillsForm):
+    field_order = ("name", "capacity", "required_skills")
     name = forms.CharField(label="Название роли", max_length=100)
     capacity = forms.IntegerField(label="Количество мест", min_value=1, max_value=20)
 

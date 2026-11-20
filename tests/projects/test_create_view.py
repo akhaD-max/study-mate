@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from accounts.models import Skill
 from projects.models import Category, Project
 
 
@@ -91,3 +92,50 @@ class CreateProjectViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("accounts:login"), response.headers["Location"])
+
+    def test_role_skills_survive_add_role_and_are_saved_per_role(self):
+        backend = Skill.objects.create(name="Backend test", category=Skill.Category.HARD)
+        frontend = Skill.objects.create(name="Frontend test", category=Skill.Category.HARD)
+        data = self.payload(**{"roles-0-required_skills": [str(backend.pk)]})
+        for headers in ({}, {"HTTP_HX_REQUEST": "true"}):
+            with self.subTest(headers=headers):
+                response = self.client.post(self.url, data | {"action": "add_role"}, **headers)
+                self.assertContains(response, 'name="roles-0-required_skills"')
+                self.assertEqual(
+                    response.context["role_formset"].forms[0]["required_skills"].value(),
+                    [str(backend.pk)],
+                )
+                self.assertFalse(Project.objects.exists())
+
+        response = self.client.post(self.url, data | {
+            "roles-TOTAL_FORMS": "2",
+            "roles-0-required_skills": [str(backend.pk), str(backend.pk).upper()],
+            "roles-1-name": "Frontend",
+            "roles-1-capacity": "1",
+            "roles-1-required_skills": [str(frontend.pk)],
+        })
+        project = Project.objects.get()
+        self.assertRedirects(response, reverse("projects:detail", args=[project.pk]))
+        roles = {role.name: role for role in project.roles.all()}
+        self.assertEqual(list(roles["Backend"].required_skills.all()), [backend])
+        self.assertEqual(list(roles["Frontend"].required_skills.all()), [frontend])
+
+    def test_invalid_skill_rejects_publication_and_preserves_other_role_selection(self):
+        active = Skill.objects.create(name="Active test", category=Skill.Category.HARD)
+        inactive = Skill.objects.create(
+            name="Inactive test", category=Skill.Category.HARD, is_active=False,
+        )
+        for value in (str(inactive.pk), "11111111-1111-4111-8111-111111111111", "bad-uuid", ""):
+            with self.subTest(value=value):
+                response = self.client.post(self.url, self.payload(**{
+                    "roles-TOTAL_FORMS": "2",
+                    "roles-0-required_skills": [str(active.pk)],
+                    "roles-1-name": "Frontend",
+                    "roles-1-capacity": "1",
+                    "roles-1-required_skills": [value],
+                }))
+                formset = response.context["role_formset"]
+                self.assertEqual(formset.forms[0]["required_skills"].value(), [str(active.pk)])
+                self.assertFalse(formset.forms[0].errors)
+                self.assertIn("required_skills", formset.forms[1].errors)
+                self.assertFalse(Project.objects.exists())
