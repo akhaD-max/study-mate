@@ -67,23 +67,25 @@
                 {% if application.status != 'pending' %}
                     <p class="in-match-note">По текущим навыкам и требованиям роли</p>
                 {% endif %}
+                {# Навыки скрыты по умолчанию: руководитель видит процент и количество,
+                   а списки раскрывает сам. <details> работает без JS. #}
                 {% if application.skill_match.matched_skills %}
-                    <div class="in-skill-group">
-                        <span class="in-skill-label">Совпадают</span>
+                    <details class="in-skill-group">
+                        <summary class="in-skill-label">Совпадают <span class="in-skill-count">{{ application.skill_match.matched_skills|length }}</span><span class="in-skill-toggle" aria-hidden="true"></span></summary>
                         <ul>{% for skill in application.skill_match.matched_skills %}<li class="in-skill-matched">{{ skill.name }}</li>{% endfor %}</ul>
-                    </div>
+                    </details>
                 {% endif %}
                 {% if application.skill_match.missing_skills %}
-                    <div class="in-skill-group">
-                        <span class="in-skill-label">Не хватает</span>
+                    <details class="in-skill-group">
+                        <summary class="in-skill-label">Не хватает <span class="in-skill-count">{{ application.skill_match.missing_skills|length }}</span><span class="in-skill-toggle" aria-hidden="true"></span></summary>
                         <ul>{% for skill in application.skill_match.missing_skills %}<li class="in-skill-missing">{{ skill.name }}</li>{% endfor %}</ul>
-                    </div>
+                    </details>
                 {% endif %}
                 {% if application.skill_match.extra_skills %}
-                    <div class="in-skill-group">
-                        <span class="in-skill-label">Дополнительные навыки</span>
+                    <details class="in-skill-group">
+                        <summary class="in-skill-label">Дополнительные навыки <span class="in-skill-count">{{ application.skill_match.extra_skills|length }}</span><span class="in-skill-toggle" aria-hidden="true"></span></summary>
                         <ul>{% for skill in application.skill_match.extra_skills %}<li>{{ skill.name }}</li>{% endfor %}</ul>
-                    </div>
+                    </details>
                 {% endif %}
             </section>
         </div>

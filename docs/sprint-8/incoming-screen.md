@@ -83,3 +83,13 @@
 - Сортировка по проценту, параметры `sort`/`role` и их комбинации с `status` из общего US-10 не реализованы — вне объёма задачи и контракта Sprint 8.
 
 Предсуществующие падения, не связанные с задачей: `test_home_login_registration_and_detail_paths`, `test_no_data_migrations_exist_only_schema_migrations`, `test_htmx_success_and_errors_are_replaceable_fragments`, `test_closed_role_preserves_comment`, `test_render_real_model_attributes_and_escape_title`, ошибка импорта `tests.projects.test_catalog_retry`.
+
+## Списки навыков в блоке совместимости
+
+Совместимость по умолчанию показывает только процент и количество
+(«75% · совпало 3 из 4 навыков»). Списки «Совпадают», «Не хватает» и
+«Дополнительные навыки» свёрнуты в нативные `<details class="in-skill-group">`
+с `<summary>` — руководитель раскрывает и скрывает их кликом или с клавиатуры,
+без JS. В заголовке группы видно число навыков, состояние показывает
+CSS-индикатор `.in-skill-toggle`. Фильтр и счётчики вкладок не задействованы:
+состояние раскрытия — только клиентское.
