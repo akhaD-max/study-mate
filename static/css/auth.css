@@ -37,10 +37,7 @@
 .auth-switch a:hover { text-decoration: underline; }
 .auth-errors, .auth-network-error { font-size: 13px; color: #ba1a1a; }
 .auth-errors ul { margin: 0; padding: 0; list-style: none; }
-.auth-footer { padding: 28px 32px; display: flex; justify-content: space-between; align-items: center; gap: 20px; background: #2d3133; color: #eff1f3; }
-.auth-footer > span { font-size: 13px; color: #eff1f3b3; }
-.auth-footer-slash { margin: 0 10px; opacity: .4; }
-.auth-footer-tagline { color: #c3f400; }
+/* Подвал общий для всего приложения — см. footer.css и partials/site_footer.html. */
 @media (max-width: 1100px) { .auth-main { gap: 32px; } .auth-hero { padding: 32px; } .auth-panel h2 { font-size: 30px; } }
 @media (max-width: 850px) { .auth-main { grid-template-columns: 1fr; padding: 32px 24px; } .auth-hero { min-height: 480px; } .auth-hero h1 { font-size: clamp(32px, 6vw, 52px); } .auth-panel { padding: 16px 0; max-width: 520px; } }
-@media (max-width: 480px) { .auth-header { padding: 12px 16px; } .auth-main { padding: 24px 16px 40px; gap: 24px; } .auth-hero { padding: 28px 24px; border-radius: 24px; } .auth-eyebrow { font-size: 10px; letter-spacing: .09em; } .auth-orbit { width: 110px; height: 110px; } .auth-manifesto { font-size: 16px; } .auth-footer { padding: 24px 16px; flex-direction: column; align-items: flex-start; gap: 12px; } }
+@media (max-width: 480px) { .auth-header { padding: 12px 16px; } .auth-main { padding: 24px 16px 40px; gap: 24px; } .auth-hero { padding: 28px 24px; border-radius: 24px; } .auth-eyebrow { font-size: 10px; letter-spacing: .09em; } .auth-orbit { width: 110px; height: 110px; } .auth-manifesto { font-size: 16px; } }

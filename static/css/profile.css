@@ -78,7 +78,7 @@
 .profile-applications { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 17px 20px; }
 .profile-applications h2 { font-size: 15px; }
 .profile-applications p { margin: 6px 0 0; color: var(--profile-muted); font-size: 12px; }
-.profile-footer { display: flex; justify-content: space-between; gap: 16px; width: calc(100% - 60px); max-width: 996px; margin: 0 auto; padding: 17px 0; border-top: 1px solid var(--profile-line); color: #858993; font-size: 10px; }
+/* Подвал общий для всего приложения — см. footer.css и partials/site_footer.html. */
 .profile-notice { padding: 13px 16px; margin: 0 0 20px; border: 1px solid #d9e8ba; border-radius: 8px; background: #f3f9e7; color: #466428; font-size: 13px; }
 .profile-notice-error { border-color: #f0cbd0; background: #fff3f4; color: #a02e3f; }
 
@@ -150,7 +150,6 @@
     .profile-content-grid { grid-template-columns: minmax(0, 1fr); }
     .profile-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
     .profile-editor-hero { flex-direction: row; margin-top: 0; }
-    .profile-footer { width: calc(100% - 48px); }
 }
 @media (max-width: 520px) {
     .profile-main { padding: 20px 16px 28px; }
@@ -179,6 +178,5 @@
     .profile-skill-options { grid-template-columns: minmax(0, 1fr); }
     .profile-form-actions { align-items: stretch; }
     .profile-form-actions .profile-button-blue { flex: 1; min-width: 0; }
-    .profile-footer { flex-wrap: wrap; width: calc(100% - 32px); font-size: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .profile-button { transition: none; } }
