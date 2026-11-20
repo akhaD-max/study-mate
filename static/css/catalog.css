@@ -160,3 +160,41 @@
     .catalog-search-page .catalog-card h3 { font-size: 18px; }
     .catalog-search-page .catalog-hero-copy { max-width: 100%; }
 }
+
+/* Окаймовка по образцу макета: заметная рамка у карточек проектов,
+   у выбранных фильтров и у блоков с информационными сообщениями.
+   Раньше карточки и сообщения отделялись только светлой линией и почти
+   сливались с фоном; теперь границы блоков читаются явно. */
+.catalog-search-page { --catalog-outline: #161c2e; --catalog-outline-error: #b32632; }
+.catalog-search-page .catalog-card { border: 2px solid var(--catalog-outline); border-radius: 16px; }
+.catalog-search-page .catalog-card:hover { border-color: var(--catalog-outline); box-shadow: 0 6px 16px #161c2e1a; }
+
+/* Выбранные условия под строкой поиска: каждый чип снимает своё условие. */
+.catalog-active-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #ececf1; }
+.catalog-active-filters-title { color: #6a6d76; font-size: 12px; font-weight: 600; }
+.catalog-filter-chip { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 6px 10px; border: 1.5px solid var(--catalog-outline); border-radius: 8px; background: white; color: #25272b; font-size: 12px; font-weight: 600; transition: background .16s ease; }
+.catalog-filter-chip:hover { background: var(--catalog-lime); }
+.catalog-filter-chip-default { background: #f4f6ff; }
+.catalog-filter-chip-default:hover { background: var(--catalog-lime); }
+.catalog-filter-chip-label { color: #6a6d76; font-weight: 500; }
+.catalog-filter-chip-value { overflow-wrap: anywhere; }
+.catalog-filter-chip-close, .catalog-filter-chip-toggle { margin-left: 2px; font-size: 11px; line-height: 1; }
+.catalog-active-filters-reset { padding: 6px 12px; border: 1.5px solid var(--catalog-outline); border-radius: 8px; background: white; color: #25272b; font-size: 12px; font-weight: 600; transition: background .16s ease, color .16s ease; }
+.catalog-active-filters-reset:hover { background: var(--catalog-outline); color: white; }
+
+/* Информационные блоки: пустая выдача, ошибка запроса, сбой загрузки. */
+.catalog-search-page .catalog-empty { border: 2px solid var(--catalog-outline); border-radius: 16px; }
+.catalog-search-page .catalog-empty-error { border-color: var(--catalog-outline-error); background: #fff7f8; }
+.catalog-search-page .catalog-empty-error h3 { color: #963342; }
+.catalog-search-page .catalog-request-error { border: 2px solid var(--catalog-outline-error); border-radius: 12px; background: #fff7f8; }
+.catalog-search-page .catalog-request-error button { padding: 8px 16px; border: 1.5px solid var(--catalog-outline-error); border-radius: 8px; background: white; color: var(--catalog-outline-error); font-size: 13px; font-weight: 600; }
+.catalog-search-page .catalog-request-error button:hover { background: var(--catalog-outline-error); color: white; }
+/* Ошибки полей и индикатор загрузки — тоже сообщения, поэтому тоже в рамке. */
+.catalog-search-page .catalog-field-error { display: inline-block; margin: 6px 0 2px; padding: 6px 10px; border: 1.5px solid var(--catalog-outline-error); border-radius: 8px; background: #fff7f8; }
+.catalog-search-page .catalog-search input[aria-invalid="true"] { border-color: var(--catalog-outline-error); }
+.catalog-search-page .catalog-results > .htmx-indicator.htmx-request { padding: 10px 14px; border: 1.5px solid var(--catalog-outline); border-radius: 8px; background: #f4f6ff; }
+@media (max-width: 640px) {
+    .catalog-active-filters { gap: 6px; }
+    .catalog-filter-chip { font-size: 11px; padding: 5px 8px; }
+    .catalog-active-filters-reset { font-size: 11px; padding: 5px 10px; }
+}
