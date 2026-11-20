@@ -5,8 +5,51 @@
 <div class="workflow-heading"><p class="catalog-eyebrow">СОБИРАЕМ КОМАНДУ</p><h1>Входящие заявки.</h1><p>{{ project.title }}</p></div>
 <div class="stack">
 {% for application in applications %}
-<article class="panel"><span class="status">{{ application.get_status_display }}</span><h2><a href="{% url 'profiles:detail' application.user_id %}">{{ application.user.get_full_name }}</a></h2><p class="muted">{{ application.role.name }} · {{ application.created_at|date:"d.m.Y" }}</p><p class="prose">{{ application.comment }}</p>
-{% if application.status == 'pending' %}<div class="actions"><form method="post" action="{% url 'applications:accept' application.id %}">{% csrf_token %}<button class="action" type="submit">Принять</button></form><form method="post" action="{% url 'applications:reject' application.id %}">{% csrf_token %}<button class="action secondary" type="submit">Отклонить</button></form></div>{% endif %}
+<article class="panel">
+    <span class="status status-{{ application.status }}">{{ application.get_status_display }}</span>
+    <h2><a href="{% url 'profiles:detail' application.user_id %}">{{ application.user.get_full_name }}</a></h2>
+    <p class="muted"><strong>{{ application.role.name }}</strong> · {{ application.created_at|date:"d.m.Y" }}</p>
+    <p class="prose">{{ application.comment }}</p>
+
+    {# Блок совместимости считается по сохранённым навыкам кандидата и требованиям его роли. #}
+    <section class="skill-match" aria-label="Совместимость по навыкам">
+        <div class="skill-match-heading">
+            <h3>Совместимость по навыкам</h3>
+            {% if application.skill_match.match_percent != None %}
+                <p class="skill-match-score">{{ application.skill_match.match_percent }}% · совпало {{ application.skill_match.matched_count }} из {{ application.skill_match.required_count }} навыков</p>
+            {% else %}
+                <p class="skill-match-score skill-match-empty">Нет данных</p>
+            {% endif %}
+        </div>
+        {% if application.skill_match.match_percent == None %}
+            <p class="skill-match-note">У роли не заданы требуемые навыки.</p>
+        {% elif not application.skill_match.candidate_has_skills %}
+            <p class="skill-match-note">Кандидат пока не указал навыки.</p>
+        {% endif %}
+        {% if application.status != 'pending' %}
+            <p class="skill-match-note">По текущим навыкам и требованиям роли</p>
+        {% endif %}
+        {% if application.skill_match.matched_skills %}
+            <div class="skill-match-group">
+                <span class="skill-match-label">Совпадают</span>
+                <ul>{% for skill in application.skill_match.matched_skills %}<li class="skill-matched">{{ skill.name }}</li>{% endfor %}</ul>
+            </div>
+        {% endif %}
+        {% if application.skill_match.missing_skills %}
+            <div class="skill-match-group">
+                <span class="skill-match-label">Не хватает</span>
+                <ul>{% for skill in application.skill_match.missing_skills %}<li class="skill-missing">{{ skill.name }}</li>{% endfor %}</ul>
+            </div>
+        {% endif %}
+        {% if application.skill_match.extra_skills %}
+            <div class="skill-match-group">
+                <span class="skill-match-label">Дополнительные навыки</span>
+                <ul>{% for skill in application.skill_match.extra_skills %}<li>{{ skill.name }}</li>{% endfor %}</ul>
+            </div>
+        {% endif %}
+    </section>
+
+    {% if application.status == 'pending' %}<div class="actions"><form method="post" action="{% url 'applications:accept' application.id %}">{% csrf_token %}<button class="action" type="submit">Принять</button></form><form method="post" action="{% url 'applications:reject' application.id %}">{% csrf_token %}<button class="action secondary" type="submit">Отклонить</button></form></div>{% endif %}
 </article>
 {% empty %}<div class="panel"><h2>Пока нет заявок.</h2><p class="muted">Когда кто-то откликнется, заявка появится здесь.</p></div>{% endfor %}
 </div>
